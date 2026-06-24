@@ -3,6 +3,7 @@ package dev.huxleymc.composeexpose.mcp
 import dev.huxleymc.composeexpose.core.ComposableDeclaration
 import dev.huxleymc.composeexpose.core.ComposableIndex
 import dev.huxleymc.composeexpose.core.ComposableIndexJson
+import dev.huxleymc.composeexpose.core.IndexMetadata
 import dev.huxleymc.composeexpose.core.PreviewDeclaration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -185,7 +186,22 @@ class ComposeExposeService(
         return result
     }
 
-    fun loadIndex(): ComposableIndex = ComposableIndexJson.decode(indexFile.readText())
+    fun loadIndex(): ComposableIndex {
+        if (!Files.exists(indexFile)) return emptyIndex()
+        return ComposableIndexJson.decode(indexFile.readText())
+    }
+
+    private fun emptyIndex(): ComposableIndex =
+        ComposableIndex(
+            metadata =
+                IndexMetadata(
+                    generatedAtEpochMillis = 0L,
+                    projectRoot = projectRoot.toString(),
+                    modules = emptyList(),
+                    sourceRoots = emptyList(),
+                ),
+            composables = emptyList(),
+        )
 
     private suspend fun runRefreshTasks(module: String?): List<GradleInvocation> {
         val tasks =

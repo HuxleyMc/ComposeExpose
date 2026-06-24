@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import re
 import sys
 from pathlib import Path
 
@@ -7,6 +8,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT_DIR / ".github" / "workflows" / "release.yml"
 BUILD_BUNDLE = ROOT_DIR / "scripts" / "build-central-bundle.sh"
 UPLOAD_BUNDLE = ROOT_DIR / "scripts" / "upload-central-bundle.sh"
+PUBLIC_RELEASE_FILES = [ROOT_DIR / "README.md", WORKFLOW]
 
 REQUIRED_WORKFLOW_SNIPPETS = {
     "manual dispatch": "workflow_dispatch:",
@@ -44,6 +46,7 @@ def main() -> int:
     errors += require_file(WORKFLOW, REQUIRED_WORKFLOW_SNIPPETS)
     errors += require_file(BUILD_BUNDLE, REQUIRED_BUILD_SNIPPETS)
     errors += require_file(UPLOAD_BUNDLE, REQUIRED_UPLOAD_SNIPPETS)
+    errors += reject_public_namespace_ids(PUBLIC_RELEASE_FILES)
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
@@ -61,6 +64,22 @@ def require_file(path: Path, snippets: dict[str, str]) -> list[str]:
         for name, snippet in snippets.items()
         if snippet not in text
     ]
+
+
+def reject_public_namespace_ids(paths: list[Path]) -> list[str]:
+    uuid_pattern = re.compile(
+        r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b",
+    )
+    errors = []
+    for path in paths:
+        if not path.is_file():
+            continue
+        text = path.read_text()
+        if "CENTRAL_NAMESPACE_ID" in text:
+            errors.append(f"{path.relative_to(ROOT_DIR)} exposes CENTRAL_NAMESPACE_ID")
+        if uuid_pattern.search(text):
+            errors.append(f"{path.relative_to(ROOT_DIR)} exposes a UUID-like namespace id")
+    return errors
 
 
 if __name__ == "__main__":

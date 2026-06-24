@@ -116,6 +116,8 @@ Tools:
 
 `refresh_index` returns a structured success flag, Gradle output, and a fresh `index_status` snapshot. Without a module argument it runs `composeExposeAggregateIndex`. With a module argument it runs `<module>:composeExposeIndex` and then `composeExposeAggregateIndex`, so the aggregate index served by MCP is refreshed before clients query again. Invalid module paths and Gradle launch failures are returned as `success: false` results so MCP clients can recover without treating the server session as failed.
 
+The MCP can start before an index has been generated. In that state query tools return empty results, `compose-expose://modules` returns an empty summary, and `index_status()` reports `exists: false` and `isStale: true`; clients should call `refresh_index()` before retrying discovery.
+
 Resources:
 
 - `compose-expose://index`
@@ -226,7 +228,7 @@ CENTRAL_PORTAL_USERNAME=... CENTRAL_PORTAL_PASSWORD=... \
   ./scripts/upload-central-bundle.sh build/central-portal/compose-expose-0.1.0-central-bundle.zip 0.1.0 USER_MANAGED
 ```
 
-The configured Central namespace is `io.github.huxleymc` (`16b9b04f-9917-4ddd-a12f-b9a9f24cef14`). The bundle upload defaults to `USER_MANAGED`, so a validated deployment can be reviewed and published in the Central Portal UI.
+The configured Central namespace is `io.github.huxleymc`. The bundle upload defaults to `USER_MANAGED`, so a validated deployment can be reviewed and published in the Central Portal UI.
 
 ## Production status
 

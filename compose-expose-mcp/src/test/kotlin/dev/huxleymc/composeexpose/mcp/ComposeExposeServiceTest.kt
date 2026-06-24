@@ -117,6 +117,27 @@ class ComposeExposeServiceTest {
         }
 
     @Test
+    fun `queries return empty results when index has not been generated yet`() =
+        runTest {
+            val indexFile = tempDir.resolve("build/composeExpose/all-composables.json")
+            val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+
+            assertEquals(emptyList(), service.searchComposables(query = "AccountCard"))
+            assertEquals(null, service.getComposable(":app:main:dev.example.AccountCard#"))
+            assertEquals(emptyList(), service.listPreviews())
+
+            val summaries = service.moduleSummaries()
+            assertEquals(0L, summaries.generatedAtEpochMillis)
+            assertEquals(tempDir.toString(), summaries.projectRoot)
+            assertEquals(emptyList(), summaries.sourceRoots)
+            assertEquals(emptyList(), summaries.modules)
+
+            val status = service.indexStatus()
+            assertFalse(status.exists)
+            assertTrue(status.isStale)
+        }
+
+    @Test
     fun `status reports stale source without running gradle`() =
         runTest {
             val sourceRoot = tempDir.resolve("app/src/main/kotlin").createDirectories()

@@ -31,7 +31,6 @@ jobs:
     timeout-minutes: 45
     env:
       CENTRAL_NAMESPACE: io.github.huxleymc
-      CENTRAL_NAMESPACE_ID: 16b9b04f-9917-4ddd-a12f-b9a9f24cef14
       CENTRAL_PORTAL_USERNAME: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
       CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
       ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
