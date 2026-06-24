@@ -164,7 +164,7 @@ Run the agent-context benchmark:
 ./scripts/benchmark-agent-context.py
 ```
 
-That benchmark compares with-ComposeExpose structured context against without-ComposeExpose grep-style matching files and full source dumps for retrieval hit rate, rank, and estimated token usage. To verify the benchmark contract used by CI:
+That benchmark compares with-ComposeExpose structured context against without-ComposeExpose grep-style matching files and full source dumps for retrieval hit rate, rank, and estimated token usage. Benchmarks are intentionally local-only so they can be run with realistic agent workflows:
 
 ```bash
 ./scripts/verify-agent-benchmark.py
@@ -206,7 +206,7 @@ io.github.huxleymc.composeexpose
 
 ## Maven Central release
 
-The manual `Release` GitHub Actions workflow builds a Maven Central bundle and uploads it as a workflow artifact. By default it runs as a dry run. Set `dry_run` to `false` to upload the bundle to the Central Portal Publisher API.
+The `Release` GitHub Actions workflow runs for `v*` tags. It derives the release version from the tag, builds a Maven Central bundle, uploads it as a workflow artifact, and uploads the bundle to the Central Portal Publisher API with `USER_MANAGED` publishing.
 
 Required GitHub secrets:
 
@@ -234,8 +234,8 @@ The configured Central namespace is `io.github.huxleymc`. The bundle upload defa
 
 The current implementation is usable, but still needs broader compatibility testing and release automation before external release.
 
-- CI runs formatting, root build, demo/MCP smoke, agent-context benchmark verification, publishing metadata verification, and published-consumer smoke.
-- Release automation builds a signed Central Portal bundle for the `io.github.huxleymc` namespace and can upload it through the manual GitHub workflow.
+- CI runs formatting, root build, and demo/MCP smoke on pull requests, `main` pushes, and version tags. Release smoke checks for publishing metadata and published-consumer installability run only for `v*` tags.
+- Release automation builds and uploads a signed Central Portal bundle for the `io.github.huxleymc` namespace only on `v*` tag pushes.
 - The Gradle task supports `source` and `ksp` backends.
 - Artifacts can be published to a local Maven repository and consumed by a standalone fixture without `includeBuild`.
 - Publications include Maven POM URL, license, developer, and SCM metadata, plus optional in-memory signing for non-snapshot remote publishing.
