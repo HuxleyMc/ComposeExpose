@@ -21,6 +21,23 @@ data class PreviewSearchResult(
 )
 
 @Serializable
+data class ModuleSummaryResource(
+    val generatedAtEpochMillis: Long,
+    val projectRoot: String,
+    val sourceRoots: List<String>,
+    val modules: List<ModuleSummary>,
+)
+
+@Serializable
+data class ModuleSummary(
+    val module: String,
+    val composableCount: Int,
+    val previewCount: Int,
+    val sourceSets: List<String>,
+    val packages: List<String>,
+)
+
+@Serializable
 data class IndexStatus(
     val exists: Boolean,
     val isStale: Boolean,
@@ -86,6 +103,28 @@ class ComposeExposeService(
             }
             .filter { group == null || it.preview.group == group }
             .sortedWith(compareBy<PreviewSearchResult> { it.composableName }.thenBy { it.preview.name.orEmpty() })
+    }
+
+    fun moduleSummaries(): ModuleSummaryResource {
+        val index = loadIndex()
+        val modules = index.composables
+            .groupBy { it.module }
+            .map { (module, composables) ->
+                ModuleSummary(
+                    module = module,
+                    composableCount = composables.size,
+                    previewCount = composables.sumOf { it.previews.size },
+                    sourceSets = composables.map { it.sourceSet }.distinct().sorted(),
+                    packages = composables.map { it.packageName }.distinct().sorted(),
+                )
+            }
+            .sortedBy { it.module }
+        return ModuleSummaryResource(
+            generatedAtEpochMillis = index.metadata.generatedAtEpochMillis,
+            projectRoot = index.metadata.projectRoot,
+            sourceRoots = index.metadata.sourceRoots,
+            modules = modules,
+        )
     }
 
     fun indexStatus(): IndexStatus {

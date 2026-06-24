@@ -97,14 +97,13 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
     server.addResource(
         uri = "compose-expose://modules",
         name = "Compose module summary",
-        description = "Indexed module names and source roots.",
+        description = "Compact per-module counts, source sets, packages, and source roots.",
         mimeType = "application/json",
     ) { request ->
-        val status = service.indexStatus()
         ReadResourceResult(
             contents = listOf(
                 TextResourceContents(
-                    text = json.encodeToString(status),
+                    text = json.encodeToString(service.moduleSummaries()),
                     uri = request.uri,
                     mimeType = "application/json",
                 ),

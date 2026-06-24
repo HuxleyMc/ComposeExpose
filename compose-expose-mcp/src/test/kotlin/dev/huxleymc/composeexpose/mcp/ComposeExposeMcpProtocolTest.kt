@@ -10,7 +10,10 @@ import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.server.ServerSession
 import io.modelcontextprotocol.kotlin.sdk.testing.ChannelTransport
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
+import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequest
+import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequestParams
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import io.modelcontextprotocol.kotlin.sdk.types.TextResourceContents
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
@@ -54,6 +57,14 @@ class ComposeExposeMcpProtocolTest {
             assertNotNull(text)
             assertTrue(text.contains("AccountCard"))
             assertEquals(1, Regex("\"name\"").findAll(text).count())
+
+            val modules = client.readResource(
+                ReadResourceRequest(ReadResourceRequestParams(uri = "compose-expose://modules")),
+            )
+            val modulesText = (modules.contents.firstOrNull() as? TextResourceContents)?.text
+            assertNotNull(modulesText)
+            assertTrue(modulesText.contains("\"composableCount\""))
+            assertTrue(modulesText.contains("\"packages\""))
         } finally {
             client.close()
             server.close()

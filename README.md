@@ -121,6 +121,8 @@ Resources:
 - `compose-expose://index`
 - `compose-expose://modules`
 
+`compose-expose://index` returns the full generated JSON index. `compose-expose://modules` returns a compact summary with generated timestamp, project root, source roots, and per-module composable counts, preview counts, source sets, and packages.
+
 ## Demo app
 
 The repo includes a standalone Android Compose demo app at `demo/`. It consumes the plugin and KSP processor through `includeBuild("..")`, so it works from a fresh clone without publishing ComposeExpose first.

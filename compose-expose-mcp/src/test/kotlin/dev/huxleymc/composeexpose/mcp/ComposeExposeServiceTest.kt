@@ -64,6 +64,50 @@ class ComposeExposeServiceTest {
     }
 
     @Test
+    fun `module summaries include counts packages previews and source sets`() = runTest {
+        val indexFile = writeIndex(
+            sampleIndex(
+                metadata = IndexMetadata(
+                    generatedAtEpochMillis = 1234L,
+                    projectRoot = tempDir.toString(),
+                    modules = listOf(":app", ":design"),
+                    sourceRoots = listOf(
+                        tempDir.resolve("app/src/main/kotlin").toString(),
+                        tempDir.resolve("design/src/main/kotlin").toString(),
+                    ),
+                ),
+                extraDeclarations = listOf(
+                    sampleComposable(
+                        name = "VariantBadge",
+                        source = "app/src/free/kotlin/dev/example/VariantBadge.kt",
+                        sourceSet = "free",
+                    ),
+                    sampleComposable(
+                        name = "ThemeWrapper",
+                        source = "design/src/main/kotlin/dev/design/ThemeWrapper.kt",
+                        module = ":design",
+                        packageName = "dev.design",
+                    ),
+                ),
+            ),
+        )
+        val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+
+        val summaries = service.moduleSummaries()
+
+        assertEquals(1234L, summaries.generatedAtEpochMillis)
+        assertEquals(2, summaries.modules.size)
+        val app = summaries.modules.single { it.module == ":app" }
+        assertEquals(2, app.composableCount)
+        assertEquals(1, app.previewCount)
+        assertEquals(listOf("free", "main"), app.sourceSets)
+        assertEquals(listOf("dev.example"), app.packages)
+        val design = summaries.modules.single { it.module == ":design" }
+        assertEquals(1, design.composableCount)
+        assertEquals(listOf("dev.design"), design.packages)
+    }
+
+    @Test
     fun `status reports stale source without running gradle`() = runTest {
         val sourceRoot = tempDir.resolve("app/src/main/kotlin").createDirectories()
         val sourceFile = sourceRoot.resolve("Cards.kt")
@@ -192,13 +236,15 @@ class ComposeExposeServiceTest {
     private fun sampleComposable(
         name: String,
         source: String,
+        module: String = ":app",
+        sourceSet: String = "main",
         packageName: String = "dev.example",
         kdocBody: String? = null,
     ): ComposableDeclaration {
         return ComposableDeclaration(
-            id = ":app:main:$packageName.$name#",
-            module = ":app",
-            sourceSet = "main",
+            id = "$module:$sourceSet:$packageName.$name#",
+            module = module,
+            sourceSet = sourceSet,
             packageName = packageName,
             name = name,
             visibility = "public",
