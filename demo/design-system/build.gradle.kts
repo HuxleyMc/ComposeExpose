@@ -2,7 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
-    id("dev.huxleymc.composeexpose")
+    id("io.github.huxleymc.composeexpose")
 }
 
 composeExpose {

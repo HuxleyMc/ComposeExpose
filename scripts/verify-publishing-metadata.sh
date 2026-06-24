@@ -20,8 +20,9 @@ expected = {
     "compose-expose-gradle-plugin",
     "compose-expose-ksp",
     "compose-expose-mcp",
-    "dev.huxleymc.composeexpose.gradle.plugin",
+    "io.github.huxleymc.composeexpose.gradle.plugin",
 }
+expected_group = "io.github.huxleymc.composeexpose"
 
 errors = []
 if not (root_dir / "LICENSE").is_file():
@@ -37,6 +38,7 @@ if missing:
 
 for artifact_id in sorted(expected.intersection(published)):
     pom_path = published[artifact_id]
+    artifact_dir = pom_path.parent
     root = ET.parse(pom_path).getroot()
     ns = {"m": root.tag.partition("}")[0].strip("{")} if root.tag.startswith("{") else {}
 
@@ -45,6 +47,7 @@ for artifact_id in sorted(expected.intersection(published)):
         return "" if element is None or element.text is None else element.text.strip()
 
     checks = {
+        "groupId": text("m:groupId" if ns else "groupId"),
         "name": text("m:name" if ns else "name"),
         "description": text("m:description" if ns else "description"),
         "url": text("m:url" if ns else "url"),
@@ -54,9 +57,21 @@ for artifact_id in sorted(expected.intersection(published)):
         "scm_developer_connection": text("m:scm/m:developerConnection" if ns else "scm/developerConnection"),
         "scm_url": text("m:scm/m:url" if ns else "scm/url"),
     }
+    if checks["groupId"] != expected_group:
+        errors.append(f"{artifact_id} POM has groupId {checks['groupId']!r}, expected {expected_group!r}")
     for field, value in checks.items():
         if not value:
             errors.append(f"{artifact_id} POM missing {field}")
+
+    if not artifact_id.endswith(".gradle.plugin"):
+        required_patterns = [
+            f"{artifact_id}-*.jar",
+            f"{artifact_id}-*-sources.jar",
+            f"{artifact_id}-*-javadoc.jar",
+        ]
+        for pattern in required_patterns:
+            if not list(artifact_dir.glob(pattern)):
+                errors.append(f"{artifact_id} missing published artifact matching {pattern}")
 
 if errors:
     raise SystemExit("\n".join(errors))

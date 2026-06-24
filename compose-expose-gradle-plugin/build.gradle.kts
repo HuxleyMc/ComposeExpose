@@ -21,7 +21,7 @@ dependencies {
 gradlePlugin {
     plugins {
         create("composeExpose") {
-            id = "dev.huxleymc.composeexpose"
+            id = "io.github.huxleymc.composeexpose"
             implementationClass = "dev.huxleymc.composeexpose.gradle.ComposeExposePlugin"
             displayName = "ComposeExpose"
             description = "Indexes Jetpack Compose composables for MCP discovery."

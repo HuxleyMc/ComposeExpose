@@ -21,6 +21,7 @@ REQUIRED_SNIPPETS = {
     "publishing metadata smoke": "./scripts/verify-publishing-metadata.sh",
     "published consumer smoke": "./scripts/smoke-published-consumer.sh",
     "workflow verifier": "./scripts/verify-ci-workflow.py",
+    "release workflow verifier": "./scripts/verify-release-workflow.py",
 }
 
 

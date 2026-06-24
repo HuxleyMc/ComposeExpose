@@ -13,7 +13,7 @@ Agents should treat the generated index as a fast cache.
 
 - Normal reads use `composables.json`.
 - `index_status()` compares Kotlin source mtimes against `generatedAtEpochMillis`.
-- If stale, call `refresh_index(module)` to run `./gradlew <module>:composeExposeIndex`.
+- If stale, call `refresh_index()`. With a module argument, the MCP first runs `./gradlew <module>:composeExposeIndex` and then refreshes the aggregate index it serves.
 - The spike does not run Gradle on every query.
 
 ## Known limitations
@@ -31,4 +31,4 @@ Prepare the KSP path for external release:
 1. Decide whether KSP should become the default backend after compatibility testing.
 2. Expand Android variant coverage beyond the demo's free/paid flavor smoke test before external release.
 3. Add live-agent evals on top of the deterministic context benchmark.
-4. Add release automation for the chosen public repository once credentials and repository ownership are finalized.
+4. Run the manual Maven Central release workflow against a real version and review the Central Portal validation output.

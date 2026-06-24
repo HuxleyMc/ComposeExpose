@@ -82,8 +82,8 @@ Command:
 
 This publishes all ComposeExpose artifacts into `build/local-maven`, then verifies a separate fixture can resolve:
 
-- `dev.huxleymc.composeexpose` Gradle plugin marker
-- `dev.huxleymc.composeexpose:compose-expose-ksp:0.1.0-SNAPSHOT`
+- `io.github.huxleymc.composeexpose` Gradle plugin marker
+- `io.github.huxleymc.composeexpose:compose-expose-ksp:0.1.0-SNAPSHOT`
 - plugin runtime dependencies
 
 Result on 2026-06-24: `Published consumer indexed 2 composables: PublishedCard, PublishedCardPreview`.

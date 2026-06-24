@@ -25,7 +25,7 @@ class ComposeExposePluginFunctionalTest {
         projectDir.resolve("build.gradle.kts").writeText(
             """
             plugins {
-                id("dev.huxleymc.composeexpose")
+                id("io.github.huxleymc.composeexpose")
             }
             """.trimIndent(),
         )
@@ -72,14 +72,14 @@ class ComposeExposePluginFunctionalTest {
         projectDir.resolve("build.gradle.kts").writeText(
             """
             plugins {
-                id("dev.huxleymc.composeexpose")
+                id("io.github.huxleymc.composeexpose")
             }
             """.trimIndent(),
         )
         listOf("app" to "AppCard", "design" to "DesignButton").forEach { (module, name) ->
             projectDir.resolve("$module/build.gradle.kts").apply {
                 parent.createDirectories()
-                writeText("""plugins { id("dev.huxleymc.composeexpose") }""")
+                writeText("""plugins { id("io.github.huxleymc.composeexpose") }""")
             }
             val source = projectDir.resolve("$module/src/main/kotlin/dev/example/$name.kt")
             source.parent.createDirectories()
@@ -118,7 +118,7 @@ class ComposeExposePluginFunctionalTest {
         projectDir.resolve("build.gradle.kts").writeText(
             """
             plugins {
-                id("dev.huxleymc.composeexpose")
+                id("io.github.huxleymc.composeexpose")
             }
 
             composeExpose {

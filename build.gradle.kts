@@ -1,3 +1,4 @@
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.plugins.signing.SigningExtension
@@ -8,8 +9,8 @@ plugins {
     alias(libs.plugins.spotless)
 }
 
-group = "dev.huxleymc.composeexpose"
-version = "0.1.0-SNAPSHOT"
+group = "io.github.huxleymc.composeexpose"
+version = providers.gradleProperty("composeExposeVersion").orElse("0.1.0-SNAPSHOT").get()
 
 fun publicationName(artifactId: String): String =
     when (artifactId) {
@@ -17,7 +18,7 @@ fun publicationName(artifactId: String): String =
         "compose-expose-gradle-plugin" -> "ComposeExpose Gradle Plugin"
         "compose-expose-ksp" -> "ComposeExpose KSP Processor"
         "compose-expose-mcp" -> "ComposeExpose MCP Server"
-        "dev.huxleymc.composeexpose.gradle.plugin" -> "ComposeExpose Gradle Plugin Marker"
+        "io.github.huxleymc.composeexpose.gradle.plugin" -> "ComposeExpose Gradle Plugin Marker"
         else -> artifactId
     }
 
@@ -27,7 +28,7 @@ fun publicationDescription(artifactId: String): String =
         "compose-expose-gradle-plugin" -> "Gradle plugin that indexes Jetpack Compose composables for MCP discovery."
         "compose-expose-ksp" -> "KSP processor that generates ComposeExpose composable indexes."
         "compose-expose-mcp" -> "MCP server for querying generated ComposeExpose indexes."
-        "dev.huxleymc.composeexpose.gradle.plugin" -> "Gradle plugin marker for ComposeExpose."
+        "io.github.huxleymc.composeexpose.gradle.plugin" -> "Gradle plugin marker for ComposeExpose."
         else -> "ComposeExpose publication."
     }
 
@@ -48,6 +49,13 @@ subprojects {
     version = rootProject.version
 
     apply(plugin = "com.diffplug.spotless")
+
+    plugins.withId("java-base") {
+        extensions.configure<JavaPluginExtension>("java") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
 
     configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         kotlin {
@@ -78,6 +86,15 @@ subprojects {
                     url =
                         rootProject.layout.buildDirectory
                             .dir("local-maven")
+                            .get()
+                            .asFile
+                            .toURI()
+                }
+                maven {
+                    name = "centralBundle"
+                    url =
+                        rootProject.layout.buildDirectory
+                            .dir("central-portal/repository")
                             .get()
                             .asFile
                             .toURI()

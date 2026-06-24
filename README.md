@@ -4,7 +4,7 @@ ComposeExpose indexes Jetpack Compose UI declarations and serves them through MC
 
 It contains:
 
-- `dev.huxleymc.composeexpose`, a Gradle plugin that writes per-module and aggregate indexes.
+- `io.github.huxleymc.composeexpose`, a Gradle plugin that writes per-module and aggregate indexes.
 - A declaration-level Compose extractor for names, source locations, KDoc, parameters, annotations, and previews.
 - A KSP processor path that can produce the same index shape from `@Composable` symbols.
 - A JVM MCP server command with stdio and Streamable HTTP transports.
@@ -15,7 +15,7 @@ Apply the plugin to each Kotlin or Android module you want indexed. Apply it to 
 
 ```kotlin
 plugins {
-    id("dev.huxleymc.composeexpose")
+    id("io.github.huxleymc.composeexpose")
 }
 ```
 
@@ -24,7 +24,7 @@ The default backend is the source extractor. For compiler-backed declaration met
 ```kotlin
 plugins {
     id("com.google.devtools.ksp")
-    id("dev.huxleymc.composeexpose")
+    id("io.github.huxleymc.composeexpose")
 }
 
 composeExpose {
@@ -32,7 +32,7 @@ composeExpose {
 }
 
 dependencies {
-    ksp("dev.huxleymc.composeexpose:compose-expose-ksp:<version>")
+    ksp("io.github.huxleymc.composeexpose:compose-expose-ksp:<version>")
 }
 ```
 
@@ -196,19 +196,44 @@ Verify public Maven metadata before publishing externally:
 ./scripts/verify-publishing-metadata.sh
 ```
 
-Public publishing metadata is configured for every Maven publication, including the Gradle plugin marker. Local snapshot publishing does not require signing keys. For remote publishing, provide:
+Public publishing metadata is configured for every Maven publication, including the Gradle plugin marker. Release coordinates use the Maven Central namespace-compatible group and plugin ID:
 
-- `composeExposePublishUrl`
-- `composeExposePublishUsername` or `COMPOSE_EXPOSE_PUBLISH_USERNAME`
-- `composeExposePublishPassword` or `COMPOSE_EXPOSE_PUBLISH_PASSWORD`
-- `signingInMemoryKey`
-- `signingInMemoryKeyPassword`
+```text
+io.github.huxleymc.composeexpose
+```
+
+## Maven Central release
+
+The manual `Release` GitHub Actions workflow builds a Maven Central bundle and uploads it as a workflow artifact. By default it runs as a dry run. Set `dry_run` to `false` to upload the bundle to the Central Portal Publisher API.
+
+Required GitHub secrets:
+
+- `CENTRAL_PORTAL_USERNAME`
+- `CENTRAL_PORTAL_PASSWORD`
+- `SIGNING_IN_MEMORY_KEY`
+- `SIGNING_IN_MEMORY_KEY_PASSWORD`
+
+Build a release bundle locally:
+
+```bash
+./scripts/build-central-bundle.sh 0.1.0
+```
+
+Upload an already-built bundle:
+
+```bash
+CENTRAL_PORTAL_USERNAME=... CENTRAL_PORTAL_PASSWORD=... \
+  ./scripts/upload-central-bundle.sh build/central-portal/compose-expose-0.1.0-central-bundle.zip 0.1.0 USER_MANAGED
+```
+
+The configured Central namespace is `io.github.huxleymc` (`16b9b04f-9917-4ddd-a12f-b9a9f24cef14`). The bundle upload defaults to `USER_MANAGED`, so a validated deployment can be reviewed and published in the Central Portal UI.
 
 ## Production status
 
 The current implementation is usable, but still needs broader compatibility testing and release automation before external release.
 
 - CI runs formatting, root build, demo/MCP smoke, agent-context benchmark verification, publishing metadata verification, and published-consumer smoke.
+- Release automation builds a signed Central Portal bundle for the `io.github.huxleymc` namespace and can upload it through the manual GitHub workflow.
 - The Gradle task supports `source` and `ksp` backends.
 - Artifacts can be published to a local Maven repository and consumed by a standalone fixture without `includeBuild`.
 - Publications include Maven POM URL, license, developer, and SCM metadata, plus optional in-memory signing for non-snapshot remote publishing.

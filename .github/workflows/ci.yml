@@ -39,6 +39,9 @@ jobs:
       - name: Verify CI workflow contract
         run: ./scripts/verify-ci-workflow.py
 
+      - name: Verify release workflow contract
+        run: ./scripts/verify-release-workflow.py
+
       - name: Check root formatting
         run: ./gradlew --no-daemon spotlessCheck
 
