@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     `java-gradle-plugin`
+    `maven-publish`
 }
 
 kotlin {
@@ -22,10 +23,21 @@ gradlePlugin {
         create("composeExpose") {
             id = "dev.huxleymc.composeexpose"
             implementationClass = "dev.huxleymc.composeexpose.gradle.ComposeExposePlugin"
+            displayName = "ComposeExpose"
+            description = "Indexes Jetpack Compose composables for MCP discovery."
         }
     }
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "localTest"
+            url = rootProject.layout.buildDirectory.dir("local-maven").get().asFile.toURI()
+        }
+    }
 }

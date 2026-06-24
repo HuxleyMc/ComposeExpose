@@ -162,11 +162,22 @@ Point the MCP server at the demo:
 ./gradlew :compose-expose-mcp:run --args="--project-root $PWD/demo --index-file $PWD/demo/build/composeExpose/all-composables.json"
 ```
 
+## Published consumer smoke
+
+Use the published-consumer fixture to verify installability without `includeBuild`:
+
+```bash
+./scripts/smoke-published-consumer.sh
+```
+
+The script publishes all artifacts to `build/local-maven`, then runs `fixtures/published-consumer` against the versioned plugin marker and KSP processor coordinates.
+
 ## Production status
 
 The current implementation is usable, but still needs publishing hardening before external release.
 
 - The Gradle task supports `source` and `ksp` backends.
+- Artifacts can be published to a local Maven repository and consumed by a standalone fixture without `includeBuild`.
 - The demo uses the KSP backend and verifies KDoc, arguments, previews, source location, and aggregate indexing.
 - `refresh_index(module)` validates Gradle module paths before invoking Gradle.
 - `index_status()` lets agents check freshness before deciding to refresh.

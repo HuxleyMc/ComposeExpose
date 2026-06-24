@@ -71,3 +71,19 @@ cd demo
 Result on 2026-06-24 with the KSP backend enabled: `BUILD SUCCESSFUL in 36s`.
 
 The assemble output was also checked to ensure AGP did not emit the duplicate packaged resource warning for `composeExpose/composables.json`.
+
+## Published Consumer
+
+Command:
+
+```bash
+./scripts/smoke-published-consumer.sh
+```
+
+This publishes all ComposeExpose artifacts into `build/local-maven`, then verifies a separate fixture can resolve:
+
+- `dev.huxleymc.composeexpose` Gradle plugin marker
+- `dev.huxleymc.composeexpose:compose-expose-ksp:0.1.0-SNAPSHOT`
+- plugin runtime dependencies
+
+Result on 2026-06-24: `Published consumer indexed 2 composables: PublishedCard, PublishedCardPreview`.

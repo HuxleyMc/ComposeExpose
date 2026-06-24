@@ -28,7 +28,7 @@ Agents should treat the generated index as a fast cache.
 
 Prepare the KSP path for external release:
 
-1. Add publishing and versioning configuration for the Gradle plugin and processor artifacts.
-2. Add a release fixture that consumes published coordinates instead of `includeBuild`.
-3. Decide whether KSP should become the default backend after compatibility testing.
-4. Add broader Android variant coverage before external release.
+1. Add external publishing metadata and signing for a public repository.
+2. Decide whether KSP should become the default backend after compatibility testing.
+3. Add broader Android variant coverage before external release.
+4. Add live-agent evals on top of the deterministic context benchmark.
