@@ -2,6 +2,8 @@
 
 The primary benchmark question is whether ComposeExpose gives agents better context with fewer tokens. Runtime numbers are secondary smoke checks.
 
+Benchmarks are local-only. CI does not run these scripts because useful benchmark results depend on real agent workflows and local measurement context.
+
 Token counts use a deterministic estimate of `ceil(chars / 4)` so the benchmark runs without provider-specific tokenizer packages.
 
 ## Agent Context

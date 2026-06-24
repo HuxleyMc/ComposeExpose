@@ -1,25 +1,9 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Release version, for example 0.1.0
-        required: true
-        type: string
-      dry_run:
-        description: Build and upload the Central bundle artifact without publishing to Central
-        required: true
-        default: true
-        type: boolean
-      publishing_type:
-        description: Central Portal publishing type
-        required: true
-        default: USER_MANAGED
-        type: choice
-        options:
-          - USER_MANAGED
-          - AUTOMATIC
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
@@ -35,6 +19,7 @@ jobs:
       CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
       ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
       ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
+      PUBLISHING_TYPE: USER_MANAGED
 
     steps:
       - name: Checkout
@@ -61,16 +46,24 @@ jobs:
       - name: Verify publishing metadata
         run: ./scripts/verify-publishing-metadata.sh
 
+      - name: Resolve release version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [[ -z "$version" || "$version" == "$GITHUB_REF_NAME" ]]; then
+            echo "Release tags must use the v<version> format." >&2
+            exit 1
+          fi
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+
       - name: Build Maven Central bundle
-        run: ./scripts/build-central-bundle.sh "${{ inputs.version }}"
+        run: ./scripts/build-central-bundle.sh "$RELEASE_VERSION"
 
       - name: Upload Central bundle artifact
         uses: actions/upload-artifact@v4
         with:
-          name: compose-expose-${{ inputs.version }}-central-bundle
-          path: build/central-portal/compose-expose-${{ inputs.version }}-central-bundle.zip
+          name: compose-expose-${{ github.ref_name }}-central-bundle
+          path: build/central-portal/*-central-bundle.zip
           if-no-files-found: error
 
       - name: Upload bundle to Central Portal
-        if: ${{ !inputs.dry_run }}
-        run: ./scripts/upload-central-bundle.sh "build/central-portal/compose-expose-${{ inputs.version }}-central-bundle.zip" "${{ inputs.version }}" "${{ inputs.publishing_type }}"
+        run: ./scripts/upload-central-bundle.sh "build/central-portal/compose-expose-$RELEASE_VERSION-central-bundle.zip" "$RELEASE_VERSION" "$PUBLISHING_TYPE"

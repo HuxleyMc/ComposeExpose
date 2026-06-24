@@ -4,16 +4,23 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
 
 permissions:
   contents: read
 
+env:
+  ANDROID_PLATFORM: android-36
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+  ANDROID_HOME: /usr/local/lib/android/sdk
+
 jobs:
   verify:
-    name: Build, smoke, and benchmark
+    name: Build and smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -28,10 +35,18 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Cache Android SDK packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/cache
+            /usr/local/lib/android/sdk/platforms/android-36
+          key: ${{ runner.os }}-android-sdk-${{ env.ANDROID_PLATFORM }}
+
       - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-37"
+          sdkmanager "platforms;$ANDROID_PLATFORM"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -54,11 +69,41 @@ jobs:
       - name: Smoke demo and MCP stdio
         run: ./scripts/smoke-demo.sh
 
-      - name: Benchmark agent context
-        run: ./scripts/benchmark-agent-context.py --no-build
+  release-smoke:
+    name: Release smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: verify
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
-      - name: Verify agent benchmark contract
-        run: ./scripts/verify-agent-benchmark.py
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Android SDK packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/cache
+            /usr/local/lib/android/sdk/platforms/android-36
+          key: ${{ runner.os }}-android-sdk-${{ env.ANDROID_PLATFORM }}
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;$ANDROID_PLATFORM"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Verify publishing metadata
         run: ./scripts/verify-publishing-metadata.sh

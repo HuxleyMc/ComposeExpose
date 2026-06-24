@@ -11,18 +11,25 @@ UPLOAD_BUNDLE = ROOT_DIR / "scripts" / "upload-central-bundle.sh"
 PUBLIC_RELEASE_FILES = [ROOT_DIR / "README.md", WORKFLOW]
 
 REQUIRED_WORKFLOW_SNIPPETS = {
-    "manual dispatch": "workflow_dispatch:",
-    "version input": "version:",
-    "dry run input": "dry_run:",
+    "push trigger": "push:",
+    "tag trigger": "tags:",
+    "version tag pattern": "- 'v*'",
     "namespace": "io.github.huxleymc",
     "root build": "./gradlew --no-daemon clean build",
     "metadata verification": "./scripts/verify-publishing-metadata.sh",
+    "tag version extraction": "${GITHUB_REF_NAME#v}",
     "bundle build": "./scripts/build-central-bundle.sh",
     "central upload": "./scripts/upload-central-bundle.sh",
     "central username secret": "CENTRAL_PORTAL_USERNAME",
     "central password secret": "CENTRAL_PORTAL_PASSWORD",
     "signing key secret": "SIGNING_IN_MEMORY_KEY",
     "signing password secret": "SIGNING_IN_MEMORY_KEY_PASSWORD",
+}
+
+FORBIDDEN_WORKFLOW_SNIPPETS = {
+    "manual dispatch": "workflow_dispatch:",
+    "dry run input": "dry_run:",
+    "workflow input version": "inputs.version",
 }
 
 REQUIRED_BUILD_SNIPPETS = {
@@ -44,6 +51,7 @@ REQUIRED_UPLOAD_SNIPPETS = {
 def main() -> int:
     errors = []
     errors += require_file(WORKFLOW, REQUIRED_WORKFLOW_SNIPPETS)
+    errors += forbid_file(WORKFLOW, FORBIDDEN_WORKFLOW_SNIPPETS)
     errors += require_file(BUILD_BUNDLE, REQUIRED_BUILD_SNIPPETS)
     errors += require_file(UPLOAD_BUNDLE, REQUIRED_UPLOAD_SNIPPETS)
     errors += reject_public_namespace_ids(PUBLIC_RELEASE_FILES)
@@ -63,6 +71,17 @@ def require_file(path: Path, snippets: dict[str, str]) -> list[str]:
         f"{path.relative_to(ROOT_DIR)} missing {name}: expected snippet {snippet!r}"
         for name, snippet in snippets.items()
         if snippet not in text
+    ]
+
+
+def forbid_file(path: Path, snippets: dict[str, str]) -> list[str]:
+    if not path.is_file():
+        return []
+    text = path.read_text()
+    return [
+        f"{path.relative_to(ROOT_DIR)} contains forbidden {name}: snippet {snippet!r}"
+        for name, snippet in snippets.items()
+        if snippet in text
     ]
 
 
