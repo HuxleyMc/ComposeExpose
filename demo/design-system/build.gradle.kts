@@ -1,7 +1,12 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
     id("dev.huxleymc.composeexpose")
+}
+
+composeExpose {
+    backend.set("ksp")
 }
 
 android {
@@ -18,4 +23,5 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    ksp("dev.huxleymc.composeexpose:compose-expose-ksp:0.1.0-SNAPSHOT")
 }

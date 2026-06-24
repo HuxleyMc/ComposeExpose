@@ -1,0 +1,32 @@
+[
+  {
+    "id": "reuse_metric_card",
+    "prompt": "Find the reusable composable for displaying a compact dashboard metric with a label and value.",
+    "expected": ["MetricCard"]
+  },
+  {
+    "id": "dashboard_entrypoint",
+    "prompt": "Which composable is the dashboard feature entry point and accepts a user name plus unread count?",
+    "expected": ["DashboardRoute"]
+  },
+  {
+    "id": "dashboard_layout",
+    "prompt": "Find the composable that presents dashboard metrics in a simple vertical layout.",
+    "expected": ["DashboardScreen"]
+  },
+  {
+    "id": "theme_wrapper",
+    "prompt": "Find the composable that applies the visual system used by the demo screens.",
+    "expected": ["DemoTheme"]
+  },
+  {
+    "id": "app_root",
+    "prompt": "Find the app root composable that wires the theme to the dashboard route.",
+    "expected": ["DemoApp"]
+  },
+  {
+    "id": "metric_preview",
+    "prompt": "Find the preview composable for the metric card in the design-system preview group.",
+    "expected": ["MetricCardPreview"]
+  }
+]

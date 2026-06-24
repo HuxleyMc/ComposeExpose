@@ -19,6 +19,23 @@ plugins {
 }
 ```
 
+The default backend is the source extractor. For compiler-backed declaration metadata, apply KSP and opt in:
+
+```kotlin
+plugins {
+    id("com.google.devtools.ksp")
+    id("dev.huxleymc.composeexpose")
+}
+
+composeExpose {
+    backend.set("ksp")
+}
+
+dependencies {
+    ksp("dev.huxleymc.composeexpose:compose-expose-ksp:<version>")
+}
+```
+
 Run:
 
 ```bash
@@ -102,7 +119,7 @@ Resources:
 
 ## Demo app
 
-The repo includes a standalone Android Compose demo app at `demo/`. It consumes the plugin through `includeBuild("..")`, so it works from a fresh clone without publishing ComposeExpose first.
+The repo includes a standalone Android Compose demo app at `demo/`. It consumes the plugin and KSP processor through `includeBuild("..")`, so it works from a fresh clone without publishing ComposeExpose first.
 
 Run a full demo smoke test:
 
@@ -125,6 +142,14 @@ Run a small indexing benchmark:
 ./scripts/benchmark-demo.sh 5
 ```
 
+Run the agent-context benchmark:
+
+```bash
+./scripts/benchmark-agent-context.py
+```
+
+That benchmark compares ComposeExpose structured context against grep-style matching files and full source dumps for retrieval hit rate, rank, and estimated token usage.
+
 The demo aggregate index is written to:
 
 ```text
@@ -139,10 +164,10 @@ Point the MCP server at the demo:
 
 ## Production status
 
-The current implementation is usable, but the extraction backend is still evolving.
+The current implementation is usable, but still needs publishing hardening before external release.
 
-- The Gradle task uses a declaration-level source extractor so it can run in plain Gradle plugin tests.
-- The KSP module validates the symbol-processing path and shared schema, but is not yet wired as the default extraction backend.
+- The Gradle task supports `source` and `ksp` backends.
+- The demo uses the KSP backend and verifies KDoc, arguments, previews, source location, and aggregate indexing.
 - `refresh_index(module)` validates Gradle module paths before invoking Gradle.
 - `index_status()` lets agents check freshness before deciding to refresh.
 - Function-body call relationships are out of scope for this spike; they likely need Kotlin PSI/Analysis API or compiler integration.

@@ -11,6 +11,7 @@ kotlin {
 dependencies {
     implementation(project(":compose-expose-core"))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    compileOnly("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.3.9")
 
     testImplementation(kotlin("test"))
     testImplementation(gradleTestKit())

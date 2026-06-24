@@ -9,4 +9,5 @@ abstract class ComposeExposeExtension @Inject constructor(objects: ObjectFactory
     val moduleName: Property<String> = objects.property(String::class.java)
     val sourceSet: Property<String> = objects.property(String::class.java).convention("main")
     val sourceRoots: ListProperty<String> = objects.listProperty(String::class.java)
+    val backend: Property<String> = objects.property(String::class.java).convention("source")
 }

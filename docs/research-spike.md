@@ -5,7 +5,7 @@
 - A Gradle task can generate a stable JSON index for Compose declarations.
 - The index captures composable name, package, visibility, module, source set, source location, KDoc, parameters, annotations, and direct or multipreview preview metadata.
 - The MCP service can search, fetch by stable id, list previews, report stale indexes, and run an explicit Gradle refresh.
-- The KSP processor can walk `@Composable` function symbols and emit the same schema for a future deeper integration.
+- The KSP processor can walk `@Composable` function symbols and emit the same schema used by the canonical index task.
 
 ## Freshness model
 
@@ -22,13 +22,13 @@ Agents should treat the generated index as a fast cache.
 - Default parameter detection is supported, but default values are not stored.
 - The source extractor records preview annotation arguments as strings.
 - Multi-module aggregation is implemented through `composeExposeAggregateIndex`.
-- KSP output currently writes to KSP generated output via `createNewFileByPath`; production integration should decide whether to copy or merge that output into `build/composeExpose/composables.json`.
+- KSP output is copied/merged into `build/composeExpose/composables.json` when `composeExpose.backend` is set to `ksp`.
 
 ## Next implementation step
 
-Promote the KSP processor from skeleton to the default extractor path:
+Prepare the KSP path for external release:
 
-1. Have the Gradle plugin detect/apply KSP when appropriate.
-2. Pass module/source-root options to KSP.
-3. Copy or merge KSP output into the canonical `build/composeExpose/composables.json`.
-4. Add publishing, versioning, and real Android fixture coverage before external release.
+1. Add publishing and versioning configuration for the Gradle plugin and processor artifacts.
+2. Add a release fixture that consumes published coordinates instead of `includeBuild`.
+3. Decide whether KSP should become the default backend after compatibility testing.
+4. Add broader Android variant coverage before external release.

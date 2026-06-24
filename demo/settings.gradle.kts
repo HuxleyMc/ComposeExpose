@@ -17,4 +17,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "ComposeExposeDemo"
 
+includeBuild("..")
+
 include(":app", ":design-system", ":feature-dashboard")

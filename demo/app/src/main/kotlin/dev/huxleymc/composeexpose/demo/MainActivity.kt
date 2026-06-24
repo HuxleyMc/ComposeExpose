@@ -17,6 +17,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Root app composable that wires the demo theme to the dashboard route.
+ */
 @Composable
 fun DemoApp() {
     DemoTheme {

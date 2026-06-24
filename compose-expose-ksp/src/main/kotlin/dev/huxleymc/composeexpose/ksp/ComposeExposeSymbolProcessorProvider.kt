@@ -98,7 +98,12 @@ class ComposeExposeSymbolProcessor(
             name = name,
             visibility = visibilityName(),
             source = SourceLocation(relativePath, location?.lineNumber ?: 1, 1),
-            kdoc = docString?.let { Kdoc(summary = it.lineSequence().firstOrNull().orEmpty(), body = it) },
+            kdoc = docString?.trim()?.let { body ->
+                Kdoc(
+                    summary = body.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty(),
+                    body = body,
+                )
+            },
             parameters = parameters,
             annotations = annotations.map { "@${it.shortName.asString()}" }.toList(),
             previews = annotations.flatMap { it.toPreviews() }.toList(),

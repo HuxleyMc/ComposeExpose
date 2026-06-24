@@ -97,4 +97,28 @@ class ComposeExposePluginFunctionalTest {
         assertEquals(listOf(":app", ":design"), index.metadata.modules)
         assertEquals(listOf("AppCard", "DesignButton"), index.composables.map { it.name })
     }
+
+    @Test
+    fun `ksp backend fails clearly when ksp output is missing`() {
+        projectDir.resolve("settings.gradle.kts").writeText("""pluginManagement { repositories { google(); gradlePluginPortal(); mavenCentral() } }""")
+        projectDir.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                id("dev.huxleymc.composeexpose")
+            }
+
+            composeExpose {
+                backend.set("ksp")
+            }
+            """.trimIndent(),
+        )
+
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir.toFile())
+            .withArguments("composeExposeIndex", "--stacktrace")
+            .withPluginClasspath()
+            .buildAndFail()
+
+        assertTrue(result.output.contains("ComposeExpose KSP backend did not find generated index output"))
+    }
 }
