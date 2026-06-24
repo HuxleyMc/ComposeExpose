@@ -21,6 +21,7 @@ import dev.huxleymc.composeexpose.core.IndexMetadata
 import dev.huxleymc.composeexpose.core.Kdoc
 import dev.huxleymc.composeexpose.core.PreviewDeclaration
 import dev.huxleymc.composeexpose.core.SourceLocation
+import dev.huxleymc.composeexpose.core.SourceSetDetector
 
 class ComposeExposeSymbolProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
@@ -49,11 +50,11 @@ class ComposeExposeSymbolProcessor(
         if (written) return deferred
 
         val module = options["composeExpose.module"] ?: ":unknown"
-        val sourceSet = options["composeExpose.sourceSet"] ?: "main"
+        val fallbackSourceSet = options["composeExpose.sourceSet"] ?: "main"
         val projectRoot = options["composeExpose.projectRoot"].orEmpty()
         val declarations = symbols
             .filter { it.validate() }
-            .map { it.toComposableDeclaration(module, sourceSet, projectRoot) }
+            .map { it.toComposableDeclaration(module, fallbackSourceSet, projectRoot) }
             .sortedWith(compareBy<ComposableDeclaration> { it.source.file }.thenBy { it.source.line }.thenBy { it.name })
 
         val index = ComposableIndex(
@@ -77,11 +78,12 @@ class ComposeExposeSymbolProcessor(
 
     private fun KSFunctionDeclaration.toComposableDeclaration(
         module: String,
-        sourceSet: String,
+        fallbackSourceSet: String,
         projectRoot: String,
     ): ComposableDeclaration {
         val location = location as? FileLocation
         val filePath = location?.filePath.orEmpty()
+        val sourceSet = SourceSetDetector.detect(filePath) ?: fallbackSourceSet
         val relativePath = if (projectRoot.isNotBlank() && filePath.startsWith(projectRoot)) {
             filePath.removePrefix(projectRoot).trimStart('/')
         } else {

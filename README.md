@@ -133,7 +133,7 @@ Build the demo APK:
 
 ```bash
 cd demo
-../gradlew --no-daemon assembleDebug
+../gradlew --no-daemon assembleFreeDebug assemblePaidDebug
 ```
 
 Run a small indexing benchmark:
@@ -178,7 +178,8 @@ The current implementation is usable, but still needs publishing hardening befor
 
 - The Gradle task supports `source` and `ksp` backends.
 - Artifacts can be published to a local Maven repository and consumed by a standalone fixture without `includeBuild`.
-- The demo uses the KSP backend and verifies KDoc, arguments, previews, source location, and aggregate indexing.
+- The demo uses the KSP backend and verifies KDoc, arguments, previews, source location, aggregate indexing, and flavor-specific composables with duplicate names.
+- KSP indexes Android source sets from file paths, so `src/free` and `src/paid` composables produce distinct stable IDs.
 - `refresh_index(module)` validates Gradle module paths before invoking Gradle.
 - `index_status()` lets agents check freshness before deciding to refresh.
 - Function-body call relationships are out of scope for this spike; they likely need Kotlin PSI/Analysis API or compiler integration.

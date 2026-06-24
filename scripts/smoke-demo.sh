@@ -19,6 +19,13 @@ count = len(data.get("composables", []))
 modules = data.get("metadata", {}).get("modules", [])
 if count < 5:
     raise SystemExit(f"Expected at least 5 composables, found {count}")
+variant_badges = [
+    item for item in data.get("composables", [])
+    if item.get("module") == ":app" and item.get("name") == "VariantBadge"
+]
+variant_source_sets = sorted(item.get("sourceSet") for item in variant_badges)
+if variant_source_sets != ["free", "paid"]:
+    raise SystemExit(f"Expected free and paid VariantBadge entries, found {variant_source_sets}")
 print(f"Indexed {count} composables from {len(modules)} modules: {', '.join(modules)}")
 PY
 

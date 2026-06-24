@@ -30,5 +30,5 @@ Prepare the KSP path for external release:
 
 1. Add external publishing metadata and signing for a public repository.
 2. Decide whether KSP should become the default backend after compatibility testing.
-3. Add broader Android variant coverage before external release.
+3. Expand Android variant coverage beyond the demo's free/paid flavor smoke test before external release.
 4. Add live-agent evals on top of the deterministic context benchmark.

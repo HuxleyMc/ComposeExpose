@@ -16,7 +16,7 @@ Workload:
 
 - Demo Android Compose app
 - 3 modules
-- 9 indexed composables
+- 13 indexed composables, including free/paid flavor-specific composables with duplicate names
 - 6 agent-style lookup tasks in `evals/agent-context-tasks.json`
 - ComposeExpose context uses top 3 structured composable records
 
@@ -25,10 +25,10 @@ Results from 2026-06-24:
 | Method | Hit rate | MRR | Avg tokens/task | Total tokens |
 | --- | ---: | ---: | ---: | ---: |
 | ComposeExpose top-k | 6/6 | 1.000 | 320.0 | 1,920 |
-| Grep matching files | 6/6 | n/a | 1,279.0 | 7,674 |
-| Full source dump | 6/6 | n/a | 1,371.0 | 8,226 |
+| Grep matching files | 6/6 | n/a | 1,474.0 | 8,844 |
+| Full source dump | 6/6 | n/a | 1,663.0 | 9,978 |
 
-ComposeExpose reduced estimated context tokens by 76.7% versus full source dump while putting the expected composable at rank 1 for every task.
+ComposeExpose reduced estimated context tokens by 80.8% versus full source dump while putting the expected composable at rank 1 for every task.
 
 This is not a live LLM quality benchmark yet. It is a deterministic retrieval/context benchmark that measures whether the MCP can put the right reusable composable into a much smaller prompt budget.
 
@@ -39,7 +39,7 @@ Environment:
 - Date: 2026-06-24
 - Machine: local macOS development machine
 - Command: `./scripts/benchmark-demo.sh 3`
-- Workload: standalone `demo/` Android Compose app with 3 modules and 9 indexed composables
+- Workload: standalone `demo/` Android Compose app with 3 modules and 13 indexed composables
 - Task: `composeExposeAggregateIndex`
 - Backend: KSP
 
@@ -47,11 +47,11 @@ Results:
 
 | Run | real | user | sys |
 | --- | ---: | ---: | ---: |
-| 1 | 14.90s | 1.09s | 0.14s |
-| 2 | 16.93s | 0.97s | 0.13s |
-| 3 | 15.68s | 1.04s | 0.15s |
+| 1 | 13.10s | 0.99s | 0.13s |
+| 2 | 12.89s | 0.91s | 0.12s |
+| 3 | 13.17s | 0.91s | 0.11s |
 
-The final aggregate index contained 9 composables.
+The final aggregate index contained 13 composables.
 
 To reproduce:
 
@@ -65,10 +65,10 @@ The demo app was also verified as a real Android build:
 
 ```bash
 cd demo
-../gradlew --no-daemon assembleDebug
+../gradlew --no-daemon assembleFreeDebug assemblePaidDebug
 ```
 
-Result on 2026-06-24 with the KSP backend enabled: `BUILD SUCCESSFUL in 36s`.
+Result on 2026-06-24 with the KSP backend enabled: `BUILD SUCCESSFUL`.
 
 The assemble output was also checked to ensure AGP did not emit the duplicate packaged resource warning for `composeExpose/composables.json`.
 

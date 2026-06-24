@@ -20,6 +20,18 @@ android {
         versionCode = 1
         versionName = "1.0"
     }
+
+    flavorDimensions += "tier"
+    productFlavors {
+        create("free") {
+            dimension = "tier"
+            applicationIdSuffix = ".free"
+        }
+        create("paid") {
+            dimension = "tier"
+            applicationIdSuffix = ".paid"
+        }
+    }
 }
 
 dependencies {
