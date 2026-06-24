@@ -56,19 +56,22 @@ class ComposeExposeService(
         query: String? = null,
         module: String? = null,
         sourceSet: String? = null,
+        limit: Int = DefaultSearchLimit,
     ): List<ComposableDeclaration> {
         val normalizedQuery = query?.trim()?.lowercase().orEmpty()
         return loadIndex().composables
             .asSequence()
             .filter { module == null || it.module == module }
             .filter { sourceSet == null || it.sourceSet == sourceSet }
-            .filter { composable ->
-                normalizedQuery.isBlank() ||
-                    composable.name.lowercase().contains(normalizedQuery) ||
-                    composable.packageName.lowercase().contains(normalizedQuery) ||
-                    composable.kdoc?.body?.lowercase()?.contains(normalizedQuery) == true
-            }
-            .sortedWith(compareBy<ComposableDeclaration> { it.module }.thenBy { it.packageName }.thenBy { it.name })
+            .mapNotNull { composable -> composable.toSearchMatch(normalizedQuery) }
+            .sortedWith(
+                compareBy<SearchMatch> { it.score }
+                    .thenBy { it.composable.module }
+                    .thenBy { it.composable.packageName }
+                    .thenBy { it.composable.name },
+            )
+            .map { it.composable }
+            .take(limit.coerceIn(1, MaxSearchLimit))
             .toList()
     }
 
@@ -160,7 +163,30 @@ class ComposeExposeService(
             }
     }
 
+    private data class SearchMatch(
+        val composable: ComposableDeclaration,
+        val score: Int,
+    )
+
+    private fun ComposableDeclaration.toSearchMatch(query: String): SearchMatch? {
+        if (query.isBlank()) return SearchMatch(this, 100)
+        val name = name.lowercase()
+        val packageName = packageName.lowercase()
+        val kdocBody = kdoc?.body?.lowercase().orEmpty()
+        val score = when {
+            name == query -> 0
+            name.startsWith(query) -> 10
+            name.contains(query) -> 20
+            packageName.contains(query) -> 30
+            kdocBody.contains(query) -> 40
+            else -> return null
+        }
+        return SearchMatch(this, score)
+    }
+
     private companion object {
+        const val DefaultSearchLimit = 20
+        const val MaxSearchLimit = 100
         private val modulePathRegex = Regex("^(:[A-Za-z0-9_-]+)+$")
 
         fun isValidGradleModulePath(module: String): Boolean = modulePathRegex.matches(module)

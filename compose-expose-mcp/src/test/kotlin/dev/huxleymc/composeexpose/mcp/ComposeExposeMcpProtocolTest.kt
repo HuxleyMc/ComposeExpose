@@ -14,6 +14,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
@@ -47,11 +48,12 @@ class ComposeExposeMcpProtocolTest {
             val tools = client.listTools()
             assertTrue(tools.tools.any { it.name == "search_composables" })
 
-            val result = client.callTool("search_composables", mapOf("query" to "account"))
+            val result = client.callTool("search_composables", mapOf("query" to "AccountCard", "limit" to 1))
 
             val text = (result.content.firstOrNull() as? TextContent)?.text
             assertNotNull(text)
             assertTrue(text.contains("AccountCard"))
+            assertEquals(1, Regex("\"name\"").findAll(text).count())
         } finally {
             client.close()
             server.close()
@@ -75,6 +77,19 @@ class ComposeExposeMcpProtocolTest {
                     name = "AccountCard",
                     visibility = "public",
                     source = SourceLocation("app/src/main/kotlin/dev/example/Cards.kt", 1, 1),
+                    kdoc = null,
+                    parameters = emptyList(),
+                    annotations = listOf("@Composable"),
+                    previews = emptyList(),
+                ),
+                ComposableDeclaration(
+                    id = ":app:main:dev.account.AccountSummary#",
+                    module = ":app",
+                    sourceSet = "main",
+                    packageName = "dev.account",
+                    name = "AccountSummary",
+                    visibility = "public",
+                    source = SourceLocation("app/src/main/kotlin/dev/account/AccountSummary.kt", 1, 1),
                     kdoc = null,
                     parameters = emptyList(),
                     annotations = listOf("@Composable"),

@@ -23,6 +23,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.nio.file.Path
@@ -119,6 +120,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                 put("query", buildJsonObject { put("type", "string") })
                 put("module", buildJsonObject { put("type", "string") })
                 put("sourceSet", buildJsonObject { put("type", "string") })
+                put("limit", buildJsonObject { put("type", "integer") })
             },
         ),
     ) { request ->
@@ -127,6 +129,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
             query = args?.get("query")?.jsonPrimitive?.contentOrNull,
             module = args?.get("module")?.jsonPrimitive?.contentOrNull,
             sourceSet = args?.get("sourceSet")?.jsonPrimitive?.contentOrNull,
+            limit = args?.get("limit")?.jsonPrimitive?.intOrNull ?: 20,
         )
         CallToolResult(content = listOf(TextContent(json.encodeToString(result))))
     }

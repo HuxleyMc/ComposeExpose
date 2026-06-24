@@ -5,6 +5,7 @@ import dev.huxleymc.composeexpose.core.ComposableIndex
 import dev.huxleymc.composeexpose.core.ComposableIndexJson
 import dev.huxleymc.composeexpose.core.ComposableParameter
 import dev.huxleymc.composeexpose.core.IndexMetadata
+import dev.huxleymc.composeexpose.core.Kdoc
 import dev.huxleymc.composeexpose.core.PreviewDeclaration
 import dev.huxleymc.composeexpose.core.SourceLocation
 import kotlin.io.path.createDirectories
@@ -31,6 +32,35 @@ class ComposeExposeServiceTest {
         assertEquals(listOf("AccountCard"), service.searchComposables(query = "account").map { it.name })
         assertEquals("AccountCard", service.getComposable(":app:main:dev.example.AccountCard#title:String")?.name)
         assertEquals(listOf("AccountCard"), service.listPreviews(group = "device").map { it.composableName })
+    }
+
+    @Test
+    fun `search ranks exact name matches first and limits results`() = runTest {
+        val indexFile = writeIndex(
+            sampleIndex(
+                extraDeclarations = listOf(
+                    sampleComposable(
+                        name = "AccountCardPreviewHost",
+                        source = "app/src/main/kotlin/dev/example/AccountPreview.kt",
+                    ),
+                    sampleComposable(
+                        name = "BillingPanel",
+                        source = "app/src/main/kotlin/dev/account/BillingPanel.kt",
+                        packageName = "dev.account",
+                    ),
+                    sampleComposable(
+                        name = "BalanceTile",
+                        source = "app/src/main/kotlin/dev/example/BalanceTile.kt",
+                        kdocBody = "Uses the reusable account visual treatment.",
+                    ),
+                ),
+            ),
+        )
+        val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+
+        val results = service.searchComposables(query = "AccountCard", limit = 2)
+
+        assertEquals(listOf("AccountCard", "AccountCardPreviewHost"), results.map { it.name })
     }
 
     @Test
@@ -128,6 +158,7 @@ class ComposeExposeServiceTest {
     private fun sampleIndex(
         metadata: IndexMetadata = IndexMetadata(1234L, tempDir.toString(), listOf(":app"), emptyList()),
         extraName: String? = null,
+        extraDeclarations: List<ComposableDeclaration> = emptyList(),
     ): ComposableIndex {
         val composables = buildList {
             add(
@@ -147,22 +178,35 @@ class ComposeExposeServiceTest {
             )
             if (extraName != null) {
                 add(
-                    ComposableDeclaration(
-                        id = ":app:main:dev.example.$extraName#",
-                        module = ":app",
-                        sourceSet = "main",
-                        packageName = "dev.example",
+                    sampleComposable(
                         name = extraName,
-                        visibility = "public",
-                        source = SourceLocation("app/src/main/kotlin/dev/example/Fresh.kt", 4, 1),
-                        kdoc = null,
-                        parameters = emptyList(),
-                        annotations = listOf("@Composable"),
-                        previews = emptyList(),
+                        source = "app/src/main/kotlin/dev/example/Fresh.kt",
                     ),
                 )
             }
+            addAll(extraDeclarations)
         }
         return ComposableIndex(metadata, composables)
+    }
+
+    private fun sampleComposable(
+        name: String,
+        source: String,
+        packageName: String = "dev.example",
+        kdocBody: String? = null,
+    ): ComposableDeclaration {
+        return ComposableDeclaration(
+            id = ":app:main:$packageName.$name#",
+            module = ":app",
+            sourceSet = "main",
+            packageName = packageName,
+            name = name,
+            visibility = "public",
+            source = SourceLocation(source, 4, 1),
+            kdoc = kdocBody?.let { Kdoc(it.lineSequence().first(), it) },
+            parameters = emptyList(),
+            annotations = listOf("@Composable"),
+            previews = emptyList(),
+        )
     }
 }
