@@ -164,12 +164,13 @@ class ComposeExposeService(
         refreshInProgress = true
         val result =
             try {
-                val task = if (module == null) "composeExposeAggregateIndex" else "$module:composeExposeIndex"
-                val command = listOf("./gradlew", task)
-                val execution = gradleRunner(command)
+                val executions = runRefreshTasks(module)
                 RefreshResult(
-                    success = execution.exitCode == 0,
-                    output = execution.output,
+                    success = executions.all { it.result.exitCode == 0 },
+                    output =
+                        executions.joinToString("\n\n") { execution ->
+                            "> ${execution.command.drop(1).joinToString(" ")}\n${execution.result.output}".trimEnd()
+                        },
                     status = buildIndexStatus(refreshing = false),
                 )
             } catch (error: Exception) {
@@ -185,6 +186,23 @@ class ComposeExposeService(
     }
 
     fun loadIndex(): ComposableIndex = ComposableIndexJson.decode(indexFile.readText())
+
+    private suspend fun runRefreshTasks(module: String?): List<GradleInvocation> {
+        val tasks =
+            if (module == null) {
+                listOf("composeExposeAggregateIndex")
+            } else {
+                listOf("$module:composeExposeIndex", "composeExposeAggregateIndex")
+            }
+        val executions = mutableListOf<GradleInvocation>()
+        for (task in tasks) {
+            val command = listOf("./gradlew", task)
+            val result = gradleRunner(command)
+            executions += GradleInvocation(command, result)
+            if (result.exitCode != 0) break
+        }
+        return executions
+    }
 
     private fun newerSources(index: ComposableIndex): List<Path> =
         index.metadata.sourceRoots
@@ -202,6 +220,11 @@ class ComposeExposeService(
     private data class SearchMatch(
         val composable: ComposableDeclaration,
         val score: Int,
+    )
+
+    private data class GradleInvocation(
+        val command: List<String>,
+        val result: RefreshExecution,
     )
 
     private fun ComposableDeclaration.toSearchMatch(query: String): SearchMatch? {

@@ -144,7 +144,7 @@ class ComposeExposeServiceTest {
         }
 
     @Test
-    fun `refresh invokes gradle task and reloads index`() =
+    fun `refresh invokes aggregate gradle task and reloads index`() =
         runTest {
             val indexFile = writeIndex(sampleIndex())
             var invoked = emptyList<String>()
@@ -159,11 +159,44 @@ class ComposeExposeServiceTest {
                     },
                 )
 
-            val result = service.refreshIndex(module = ":app")
+            val result = service.refreshIndex()
 
-            assertEquals(listOf("./gradlew", ":app:composeExposeIndex"), invoked)
+            assertEquals(listOf("./gradlew", "composeExposeAggregateIndex"), invoked)
             assertTrue(result.success)
             assertFalse(result.status.refreshInProgress)
+            assertNotNull(service.getComposable(":app:main:dev.example.FreshCard#"))
+        }
+
+    @Test
+    fun `module refresh runs module task then aggregate task before reloading served index`() =
+        runTest {
+            val indexFile = writeIndex(sampleIndex())
+            val invocations = mutableListOf<List<String>>()
+            val service =
+                ComposeExposeService(
+                    projectRoot = tempDir,
+                    indexFile = indexFile,
+                    gradleRunner = { args ->
+                        invocations += args
+                        if (args == listOf("./gradlew", "composeExposeAggregateIndex")) {
+                            writeIndex(sampleIndex(extraName = "FreshCard"))
+                        }
+                        RefreshExecution(exitCode = 0, output = "indexed ${args.last()}")
+                    },
+                )
+
+            val result = service.refreshIndex(module = ":app")
+
+            assertEquals(
+                listOf(
+                    listOf("./gradlew", ":app:composeExposeIndex"),
+                    listOf("./gradlew", "composeExposeAggregateIndex"),
+                ),
+                invocations,
+            )
+            assertTrue(result.success)
+            assertTrue(result.output.contains(":app:composeExposeIndex"))
+            assertTrue(result.output.contains("composeExposeAggregateIndex"))
             assertNotNull(service.getComposable(":app:main:dev.example.FreshCard#"))
         }
 
