@@ -112,6 +112,8 @@ Tools:
 - `refresh_index(module)`
 - `index_status()`
 
+`refresh_index` returns a structured success flag, Gradle output, and a fresh `index_status` snapshot. Invalid module paths and Gradle launch failures are returned as `success: false` results so MCP clients can recover without treating the server session as failed.
+
 Resources:
 
 - `compose-expose://index`

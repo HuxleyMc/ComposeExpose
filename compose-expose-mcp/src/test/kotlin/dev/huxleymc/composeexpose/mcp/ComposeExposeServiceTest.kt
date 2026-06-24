@@ -75,7 +75,27 @@ class ComposeExposeServiceTest {
 
         assertEquals(listOf("./gradlew", ":app:composeExposeIndex"), invoked)
         assertTrue(result.success)
+        assertFalse(result.status.refreshInProgress)
         assertNotNull(service.getComposable(":app:main:dev.example.FreshCard#"))
+    }
+
+    @Test
+    fun `refresh returns structured failure and resets in-progress flag when gradle runner throws`() = runTest {
+        val indexFile = writeIndex(sampleIndex())
+        val service = ComposeExposeService(
+            projectRoot = tempDir,
+            indexFile = indexFile,
+            gradleRunner = {
+                throw IllegalStateException("gradle unavailable")
+            },
+        )
+
+        val result = service.refreshIndex()
+
+        assertFalse(result.success)
+        assertTrue(result.output.contains("gradle unavailable"))
+        assertFalse(result.status.refreshInProgress)
+        assertFalse(service.indexStatus().refreshInProgress)
     }
 
     @Test

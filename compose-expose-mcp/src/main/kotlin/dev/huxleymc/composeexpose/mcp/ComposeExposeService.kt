@@ -86,6 +86,10 @@ class ComposeExposeService(
     }
 
     fun indexStatus(): IndexStatus {
+        return buildIndexStatus(refreshInProgress)
+    }
+
+    private fun buildIndexStatus(refreshing: Boolean): IndexStatus {
         if (!Files.exists(indexFile)) {
             return IndexStatus(
                 exists = false,
@@ -94,7 +98,7 @@ class ComposeExposeService(
                 modules = emptyList(),
                 sourceRoots = emptyList(),
                 newerSources = emptyList(),
-                refreshInProgress = refreshInProgress,
+                refreshInProgress = refreshing,
             )
         }
         val index = loadIndex()
@@ -106,7 +110,7 @@ class ComposeExposeService(
             modules = index.metadata.modules,
             sourceRoots = index.metadata.sourceRoots,
             newerSources = newerSources,
-            refreshInProgress = refreshInProgress,
+            refreshInProgress = refreshing,
         )
     }
 
@@ -119,18 +123,25 @@ class ComposeExposeService(
             )
         }
         refreshInProgress = true
-        return try {
+        val result = try {
             val task = if (module == null) "composeExposeAggregateIndex" else "${module}:composeExposeIndex"
             val command = listOf("./gradlew", task)
             val execution = gradleRunner(command)
             RefreshResult(
                 success = execution.exitCode == 0,
                 output = execution.output,
-                status = indexStatus(),
+                status = buildIndexStatus(refreshing = false),
+            )
+        } catch (error: Exception) {
+            RefreshResult(
+                success = false,
+                output = "Failed to refresh ComposeExpose index: ${error.message ?: error::class.simpleName}",
+                status = buildIndexStatus(refreshing = false),
             )
         } finally {
             refreshInProgress = false
         }
+        return result
     }
 
     fun loadIndex(): ComposableIndex = ComposableIndexJson.decode(indexFile.readText())
