@@ -30,5 +30,4 @@ print(f"Indexed {count} composables from {len(modules)} modules: {', '.join(modu
 PY
 
 cd "$ROOT_DIR"
-"$ROOT_DIR/gradlew" --no-daemon :compose-expose-mcp:run --args="--help" >/dev/null
-echo "MCP CLI help command runs."
+"$ROOT_DIR/scripts/smoke-mcp-stdio.sh" "$DEMO_DIR" "$INDEX_FILE"

@@ -133,7 +133,15 @@ Run a full demo smoke test:
 ./scripts/smoke-demo.sh
 ```
 
-That command indexes the demo app, verifies the aggregate index has composables, and checks the MCP CLI help path.
+That command indexes the demo app, verifies the aggregate index has composables, and runs the MCP stdio process smoke.
+
+Run the MCP stdio server smoke directly:
+
+```bash
+./scripts/smoke-mcp-stdio.sh
+```
+
+That command starts the installed MCP server process, sends JSON-RPC over stdio, calls `search_composables`, and reads `compose-expose://modules`.
 
 Build the demo APK:
 
