@@ -1,0 +1,38 @@
+[versions]
+agp = "9.2.0"
+composeBom = "2026.06.00"
+composeExpose = "0.1.0-SNAPSHOT"
+coroutines = "1.11.0"
+kotlin = "2.4.0"
+ksp = "2.3.9"
+ktor = "3.4.0"
+ktlint = "1.8.0"
+mcp = "0.13.0"
+serializationJson = "1.11.0"
+spotless = "8.7.0"
+
+[libraries]
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version = "1.12.0" }
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-expose-ksp = { module = "dev.huxleymc.composeexpose:compose-expose-ksp", version.ref = "composeExpose" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serializationJson" }
+ksp-symbol-processing-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
+ksp-symbol-processing-gradle-plugin = { module = "com.google.devtools.ksp:symbol-processing-gradle-plugin", version.ref = "ksp" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+mcp-kotlin-sdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcp" }
+mcp-kotlin-sdk-testing = { module = "io.modelcontextprotocol:kotlin-sdk-testing", version.ref = "mcp" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

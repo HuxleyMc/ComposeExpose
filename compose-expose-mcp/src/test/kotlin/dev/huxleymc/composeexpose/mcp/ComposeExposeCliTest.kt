@@ -1,9 +1,9 @@
 package dev.huxleymc.composeexpose.mcp
 
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import java.nio.file.Path
 
 class ComposeExposeCliTest {
     @Test
@@ -17,15 +17,20 @@ class ComposeExposeCliTest {
 
     @Test
     fun `parses http transport port and explicit index`() {
-        val options = ComposeExposeCli.parse(
-            arrayOf(
-                "--project-root", "/repo",
-                "--index-file", "/repo/custom.json",
-                "--transport", "http",
-                "--port", "8123",
-            ),
-            defaultProjectRoot = Path.of("/ignored"),
-        )
+        val options =
+            ComposeExposeCli.parse(
+                arrayOf(
+                    "--project-root",
+                    "/repo",
+                    "--index-file",
+                    "/repo/custom.json",
+                    "--transport",
+                    "http",
+                    "--port",
+                    "8123",
+                ),
+                defaultProjectRoot = Path.of("/ignored"),
+            )
 
         assertEquals(ServerTransport.Http, options.transport)
         assertEquals(8123, options.port)

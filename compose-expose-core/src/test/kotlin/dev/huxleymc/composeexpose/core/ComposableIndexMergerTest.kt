@@ -16,29 +16,34 @@ class ComposableIndexMergerTest {
         assertEquals(listOf("/repo/app/src/main/kotlin", "/repo/design/src/main/kotlin"), merged.metadata.sourceRoots)
     }
 
-    private fun index(module: String, qualifiedName: String, name: String): ComposableIndex {
-        return ComposableIndex(
-            metadata = IndexMetadata(
-                generatedAtEpochMillis = 1L,
-                projectRoot = "/repo",
-                modules = listOf(module),
-                sourceRoots = listOf("/repo/${module.removePrefix(":")}/src/main/kotlin"),
-            ),
-            composables = listOf(
-                ComposableDeclaration(
-                    id = "$module:main:$qualifiedName#",
-                    module = module,
-                    sourceSet = "main",
-                    packageName = qualifiedName.substringBeforeLast("."),
-                    name = name,
-                    visibility = "public",
-                    source = SourceLocation("${module.removePrefix(":")}/src/main/kotlin/${name}.kt", 1, 1),
-                    kdoc = null,
-                    parameters = emptyList(),
-                    annotations = listOf("@Composable"),
-                    previews = emptyList(),
+    private fun index(
+        module: String,
+        qualifiedName: String,
+        name: String,
+    ): ComposableIndex =
+        ComposableIndex(
+            metadata =
+                IndexMetadata(
+                    generatedAtEpochMillis = 1L,
+                    projectRoot = "/repo",
+                    modules = listOf(module),
+                    sourceRoots = listOf("/repo/${module.removePrefix(":")}/src/main/kotlin"),
                 ),
-            ),
+            composables =
+                listOf(
+                    ComposableDeclaration(
+                        id = "$module:main:$qualifiedName#",
+                        module = module,
+                        sourceSet = "main",
+                        packageName = qualifiedName.substringBeforeLast("."),
+                        name = name,
+                        visibility = "public",
+                        source = SourceLocation("${module.removePrefix(":")}/src/main/kotlin/$name.kt", 1, 1),
+                        kdoc = null,
+                        parameters = emptyList(),
+                        annotations = listOf("@Composable"),
+                        previews = emptyList(),
+                    ),
+                ),
         )
-    }
 }

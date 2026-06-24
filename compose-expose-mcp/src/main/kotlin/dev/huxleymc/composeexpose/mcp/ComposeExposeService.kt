@@ -73,10 +73,11 @@ class ComposeExposeService(
         query: String? = null,
         module: String? = null,
         sourceSet: String? = null,
-        limit: Int = DefaultSearchLimit,
+        limit: Int = DEFAULT_SEARCH_LIMIT,
     ): List<ComposableDeclaration> {
         val normalizedQuery = query?.trim()?.lowercase().orEmpty()
-        return loadIndex().composables
+        return loadIndex()
+            .composables
             .asSequence()
             .filter { module == null || it.module == module }
             .filter { sourceSet == null || it.sourceSet == sourceSet }
@@ -86,39 +87,37 @@ class ComposeExposeService(
                     .thenBy { it.composable.module }
                     .thenBy { it.composable.packageName }
                     .thenBy { it.composable.name },
-            )
-            .map { it.composable }
-            .take(limit.coerceIn(1, MaxSearchLimit))
+            ).map { it.composable }
+            .take(limit.coerceIn(1, MAX_SEARCH_LIMIT))
             .toList()
     }
 
     fun getComposable(id: String): ComposableDeclaration? = loadIndex().composables.firstOrNull { it.id == id }
 
-    fun listPreviews(group: String? = null): List<PreviewSearchResult> {
-        return loadIndex().composables
+    fun listPreviews(group: String? = null): List<PreviewSearchResult> =
+        loadIndex()
+            .composables
             .flatMap { composable ->
                 composable.previews.map { preview ->
                     PreviewSearchResult(composable.id, composable.name, preview)
                 }
-            }
-            .filter { group == null || it.preview.group == group }
+            }.filter { group == null || it.preview.group == group }
             .sortedWith(compareBy<PreviewSearchResult> { it.composableName }.thenBy { it.preview.name.orEmpty() })
-    }
 
     fun moduleSummaries(): ModuleSummaryResource {
         val index = loadIndex()
-        val modules = index.composables
-            .groupBy { it.module }
-            .map { (module, composables) ->
-                ModuleSummary(
-                    module = module,
-                    composableCount = composables.size,
-                    previewCount = composables.sumOf { it.previews.size },
-                    sourceSets = composables.map { it.sourceSet }.distinct().sorted(),
-                    packages = composables.map { it.packageName }.distinct().sorted(),
-                )
-            }
-            .sortedBy { it.module }
+        val modules =
+            index.composables
+                .groupBy { it.module }
+                .map { (module, composables) ->
+                    ModuleSummary(
+                        module = module,
+                        composableCount = composables.size,
+                        previewCount = composables.sumOf { it.previews.size },
+                        sourceSets = composables.map { it.sourceSet }.distinct().sorted(),
+                        packages = composables.map { it.packageName }.distinct().sorted(),
+                    )
+                }.sortedBy { it.module }
         return ModuleSummaryResource(
             generatedAtEpochMillis = index.metadata.generatedAtEpochMillis,
             projectRoot = index.metadata.projectRoot,
@@ -127,9 +126,7 @@ class ComposeExposeService(
         )
     }
 
-    fun indexStatus(): IndexStatus {
-        return buildIndexStatus(refreshInProgress)
-    }
+    fun indexStatus(): IndexStatus = buildIndexStatus(refreshInProgress)
 
     private fun buildIndexStatus(refreshing: Boolean): IndexStatus {
         if (!Files.exists(indexFile)) {
@@ -165,31 +162,32 @@ class ComposeExposeService(
             )
         }
         refreshInProgress = true
-        val result = try {
-            val task = if (module == null) "composeExposeAggregateIndex" else "${module}:composeExposeIndex"
-            val command = listOf("./gradlew", task)
-            val execution = gradleRunner(command)
-            RefreshResult(
-                success = execution.exitCode == 0,
-                output = execution.output,
-                status = buildIndexStatus(refreshing = false),
-            )
-        } catch (error: Exception) {
-            RefreshResult(
-                success = false,
-                output = "Failed to refresh ComposeExpose index: ${error.message ?: error::class.simpleName}",
-                status = buildIndexStatus(refreshing = false),
-            )
-        } finally {
-            refreshInProgress = false
-        }
+        val result =
+            try {
+                val task = if (module == null) "composeExposeAggregateIndex" else "$module:composeExposeIndex"
+                val command = listOf("./gradlew", task)
+                val execution = gradleRunner(command)
+                RefreshResult(
+                    success = execution.exitCode == 0,
+                    output = execution.output,
+                    status = buildIndexStatus(refreshing = false),
+                )
+            } catch (error: Exception) {
+                RefreshResult(
+                    success = false,
+                    output = "Failed to refresh ComposeExpose index: ${error.message ?: error::class.simpleName}",
+                    status = buildIndexStatus(refreshing = false),
+                )
+            } finally {
+                refreshInProgress = false
+            }
         return result
     }
 
     fun loadIndex(): ComposableIndex = ComposableIndexJson.decode(indexFile.readText())
 
-    private fun newerSources(index: ComposableIndex): List<Path> {
-        return index.metadata.sourceRoots
+    private fun newerSources(index: ComposableIndex): List<Path> =
+        index.metadata.sourceRoots
             .map { Path.of(it) }
             .filter { Files.exists(it) }
             .flatMap { root ->
@@ -200,7 +198,6 @@ class ComposeExposeService(
                         .toList()
                 }
             }
-    }
 
     private data class SearchMatch(
         val composable: ComposableDeclaration,
@@ -212,33 +209,39 @@ class ComposeExposeService(
         val name = name.lowercase()
         val packageName = packageName.lowercase()
         val kdocBody = kdoc?.body?.lowercase().orEmpty()
-        val score = when {
-            name == query -> 0
-            name.startsWith(query) -> 10
-            name.contains(query) -> 20
-            packageName.contains(query) -> 30
-            kdocBody.contains(query) -> 40
-            else -> return null
-        }
+        val score =
+            when {
+                name == query -> 0
+                name.startsWith(query) -> 10
+                name.contains(query) -> 20
+                packageName.contains(query) -> 30
+                kdocBody.contains(query) -> 40
+                else -> return null
+            }
         return SearchMatch(this, score)
     }
 
     private companion object {
-        const val DefaultSearchLimit = 20
-        const val MaxSearchLimit = 100
-        private val modulePathRegex = Regex("^(:[A-Za-z0-9_-]+)+$")
+        const val DEFAULT_SEARCH_LIMIT = 20
+        const val MAX_SEARCH_LIMIT = 100
+        private val MODULE_PATH_REGEX = Regex("^(:[A-Za-z0-9_-]+)+$")
 
-        fun isValidGradleModulePath(module: String): Boolean = modulePathRegex.matches(module)
+        fun isValidGradleModulePath(module: String): Boolean = MODULE_PATH_REGEX.matches(module)
 
-        suspend fun runGradle(projectRoot: Path, args: List<String>): RefreshExecution = withContext(Dispatchers.IO) {
-            val executable = projectRoot.resolve(args.first()).toFile()
-            val command = if (executable.exists()) listOf(executable.absolutePath) + args.drop(1) else args
-            val process = ProcessBuilder(command)
-                .directory(projectRoot.toFile())
-                .redirectErrorStream(true)
-                .start()
-            val output = process.inputStream.bufferedReader().readText()
-            RefreshExecution(process.waitFor(), output)
-        }
+        suspend fun runGradle(
+            projectRoot: Path,
+            args: List<String>,
+        ): RefreshExecution =
+            withContext(Dispatchers.IO) {
+                val executable = projectRoot.resolve(args.first()).toFile()
+                val command = if (executable.exists()) listOf(executable.absolutePath) + args.drop(1) else args
+                val process =
+                    ProcessBuilder(command)
+                        .directory(projectRoot.toFile())
+                        .redirectErrorStream(true)
+                        .start()
+                val output = process.inputStream.bufferedReader().readText()
+                RefreshExecution(process.waitFor(), output)
+            }
     }
 }

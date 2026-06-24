@@ -14,17 +14,19 @@ class SourceComposableExtractor {
         sourceRoots: List<Path>,
         projectRoot: Path,
     ): ComposableIndex {
-        val composables = sourceRoots
-            .flatMap { root -> kotlinFiles(root).flatMap { file -> extractFile(module, sourceSet, file, projectRoot) } }
-            .sortedWith(compareBy<ComposableDeclaration> { it.source.file }.thenBy { it.source.line }.thenBy { it.name })
+        val composables =
+            sourceRoots
+                .flatMap { root -> kotlinFiles(root).flatMap { file -> extractFile(module, sourceSet, file, projectRoot) } }
+                .sortedWith(compareBy<ComposableDeclaration> { it.source.file }.thenBy { it.source.line }.thenBy { it.name })
 
         return ComposableIndex(
-            metadata = IndexMetadata(
-                generatedAtEpochMillis = System.currentTimeMillis(),
-                projectRoot = projectRoot.toAbsolutePath().normalize().toString(),
-                modules = listOf(module),
-                sourceRoots = sourceRoots.map { it.toAbsolutePath().normalize().toString() }.sorted(),
-            ),
+            metadata =
+                IndexMetadata(
+                    generatedAtEpochMillis = System.currentTimeMillis(),
+                    projectRoot = projectRoot.toAbsolutePath().normalize().toString(),
+                    modules = listOf(module),
+                    sourceRoots = sourceRoots.map { it.toAbsolutePath().normalize().toString() }.sorted(),
+                ),
             composables = composables,
         )
     }
@@ -62,37 +64,42 @@ class SourceComposableExtractor {
                     index = next
                     continue
                 }
+
                 trimmed.startsWith("@") -> {
                     val (annotation, next) = readAnnotation(lines, index)
                     pendingAnnotations += annotation
                     index = next
                     continue
                 }
+
                 trimmed.isBlank() -> {
                     index++
                     continue
                 }
+
                 functionStartRegex.containsMatchIn(trimmed) -> {
                     val startLine = index + 1
                     val (signature, next) = readFunctionSignature(lines, index)
-                    val declaration = parseFunction(
-                        module = module,
-                        sourceSet = sourceSet,
-                        packageName = packageName,
-                        file = file,
-                        projectRoot = projectRoot,
-                        line = startLine,
-                        kdoc = pendingKdoc,
-                        annotations = pendingAnnotations.toList(),
-                        multipreviews = multipreviews,
-                        signature = signature,
-                    )
+                    val declaration =
+                        parseFunction(
+                            module = module,
+                            sourceSet = sourceSet,
+                            packageName = packageName,
+                            file = file,
+                            projectRoot = projectRoot,
+                            line = startLine,
+                            kdoc = pendingKdoc,
+                            annotations = pendingAnnotations.toList(),
+                            multipreviews = multipreviews,
+                            signature = signature,
+                        )
                     if (declaration != null) declarations += declaration
                     pendingKdoc = null
                     pendingAnnotations.clear()
                     index = next
                     continue
                 }
+
                 else -> {
                     pendingKdoc = null
                     pendingAnnotations.clear()
@@ -116,20 +123,27 @@ class SourceComposableExtractor {
                     index = next
                     continue
                 }
+
                 annotationClassRegex.containsMatchIn(trimmed) -> {
                     val name = annotationClassRegex.find(trimmed)?.groupValues?.get(1)
                     val previews = pendingAnnotations.flatMap { parsePreviewAnnotation(it) }
                     if (name != null && previews.isNotEmpty()) result[name] = previews
                     pendingAnnotations.clear()
                 }
-                trimmed.isNotBlank() -> pendingAnnotations.clear()
+
+                trimmed.isNotBlank() -> {
+                    pendingAnnotations.clear()
+                }
             }
             index++
         }
         return result
     }
 
-    private fun readKdoc(lines: List<String>, start: Int): Pair<Kdoc, Int> {
+    private fun readKdoc(
+        lines: List<String>,
+        start: Int,
+    ): Pair<Kdoc, Int> {
         val raw = mutableListOf<String>()
         var index = start
         while (index < lines.size) {
@@ -137,21 +151,25 @@ class SourceComposableExtractor {
             if (lines[index].contains("*/")) break
             index++
         }
-        val bodyLines = raw
-            .map { line ->
-                line.trim()
-                    .removePrefix("/**")
-                    .removeSuffix("*/")
-                    .trim()
-                    .removePrefix("*")
-                    .trim()
-            }
-            .filter { it.isNotBlank() }
+        val bodyLines =
+            raw
+                .map { line ->
+                    line
+                        .trim()
+                        .removePrefix("/**")
+                        .removeSuffix("*/")
+                        .trim()
+                        .removePrefix("*")
+                        .trim()
+                }.filter { it.isNotBlank() }
         val body = bodyLines.joinToString("\n")
         return Kdoc(summary = bodyLines.firstOrNull().orEmpty(), body = body) to index + 1
     }
 
-    private fun readAnnotation(lines: List<String>, start: Int): Pair<String, Int> {
+    private fun readAnnotation(
+        lines: List<String>,
+        start: Int,
+    ): Pair<String, Int> {
         val parts = mutableListOf<String>()
         var index = start
         var balance = 0
@@ -165,7 +183,10 @@ class SourceComposableExtractor {
         return parts.joinToString(" ").replace(Regex("\\s+"), " ") to index
     }
 
-    private fun readFunctionSignature(lines: List<String>, start: Int): Pair<String, Int> {
+    private fun readFunctionSignature(
+        lines: List<String>,
+        start: Int,
+    ): Pair<String, Int> {
         val parts = mutableListOf<String>()
         var index = start
         var parenBalance = 0
@@ -199,13 +220,19 @@ class SourceComposableExtractor {
         val name = match.groups["name"]?.value ?: return null
         val parameterText = match.groups["params"]?.value.orEmpty()
         val parameters = parseParameters(parameterText)
-        val previews = annotations.flatMap { annotation ->
-            parsePreviewAnnotation(annotation).ifEmpty {
-                multipreviews[annotationName(annotation)].orEmpty()
+        val previews =
+            annotations.flatMap { annotation ->
+                parsePreviewAnnotation(annotation).ifEmpty {
+                    multipreviews[annotationName(annotation)].orEmpty()
+                }
             }
-        }
         val id = stableId(module, sourceSet, packageName, name, parameters)
-        val relativeFile = file.toAbsolutePath().normalize().relativeTo(projectRoot.toAbsolutePath().normalize()).toString()
+        val relativeFile =
+            file
+                .toAbsolutePath()
+                .normalize()
+                .relativeTo(projectRoot.toAbsolutePath().normalize())
+                .toString()
         return ComposableDeclaration(
             id = id,
             module = module,
@@ -243,14 +270,28 @@ class SourceComposableExtractor {
         var paren = 0
         value.forEach { char ->
             when (char) {
-                '<' -> angle++
-                '>' -> if (angle > 0) angle--
-                '(' -> paren++
-                ')' -> if (paren > 0) paren--
-                ',' -> if (angle == 0 && paren == 0) {
-                    result += current.toString()
-                    current.clear()
-                    return@forEach
+                '<' -> {
+                    angle++
+                }
+
+                '>' -> {
+                    if (angle > 0) angle--
+                }
+
+                '(' -> {
+                    paren++
+                }
+
+                ')' -> {
+                    if (paren > 0) paren--
+                }
+
+                ',' -> {
+                    if (angle == 0 && paren == 0) {
+                        result += current.toString()
+                        current.clear()
+                        return@forEach
+                    }
                 }
             }
             current.append(char)
@@ -275,19 +316,20 @@ class SourceComposableExtractor {
     private fun parseAnnotationArguments(annotation: String): Map<String, String> {
         val args = annotation.substringAfter("(", missingDelimiterValue = "").substringBeforeLast(")")
         if (args.isBlank()) return emptyMap()
-        return splitTopLevel(args).mapNotNull { entry ->
-            val key = entry.substringBefore("=", missingDelimiterValue = "").trim()
-            val value = entry.substringAfter("=", missingDelimiterValue = "").trim().trim('"')
-            if (key.isBlank() || value.isBlank()) null else key to value
-        }.toMap()
+        return splitTopLevel(args)
+            .mapNotNull { entry ->
+                val key = entry.substringBefore("=", missingDelimiterValue = "").trim()
+                val value = entry.substringAfter("=", missingDelimiterValue = "").trim().trim('"')
+                if (key.isBlank() || value.isBlank()) null else key to value
+            }.toMap()
     }
 
-    private fun annotationName(annotation: String): String {
-        return annotation.removePrefix("@")
+    private fun annotationName(annotation: String): String =
+        annotation
+            .removePrefix("@")
             .substringBefore("(")
             .substringAfterLast(".")
             .trim()
-    }
 
     private fun stableId(
         module: String,
@@ -305,8 +347,9 @@ class SourceComposableExtractor {
         val packageRegex = Regex("^\\s*package\\s+([A-Za-z0-9_.]+)")
         val annotationClassRegex = Regex("\\bannotation\\s+class\\s+(\\w+)")
         val functionStartRegex = Regex("\\bfun\\s+\\w+\\s*\\(")
-        val functionRegex = Regex(
-            "(?:(?<visibility>public|private|internal|protected)\\s+)?(?:[\\w<>]+\\s+)*fun\\s+(?<name>\\w+)\\s*\\((?<params>.*)\\)",
-        )
+        val functionRegex =
+            Regex(
+                "(?:(?<visibility>public|private|internal|protected)\\s+)?(?:[\\w<>]+\\s+)*fun\\s+(?<name>\\w+)\\s*\\((?<params>.*)\\)",
+            )
     }
 }

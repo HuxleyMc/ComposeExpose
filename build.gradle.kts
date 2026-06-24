@@ -3,34 +3,70 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.plugins.signing.SigningExtension
 
 plugins {
-    kotlin("jvm") version "2.4.0" apply false
-    kotlin("plugin.serialization") version "2.4.0" apply false
+    alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.spotless)
 }
 
 group = "dev.huxleymc.composeexpose"
 version = "0.1.0-SNAPSHOT"
 
-fun publicationName(artifactId: String): String = when (artifactId) {
-    "compose-expose-core" -> "ComposeExpose Core"
-    "compose-expose-gradle-plugin" -> "ComposeExpose Gradle Plugin"
-    "compose-expose-ksp" -> "ComposeExpose KSP Processor"
-    "compose-expose-mcp" -> "ComposeExpose MCP Server"
-    "dev.huxleymc.composeexpose.gradle.plugin" -> "ComposeExpose Gradle Plugin Marker"
-    else -> artifactId
-}
+fun publicationName(artifactId: String): String =
+    when (artifactId) {
+        "compose-expose-core" -> "ComposeExpose Core"
+        "compose-expose-gradle-plugin" -> "ComposeExpose Gradle Plugin"
+        "compose-expose-ksp" -> "ComposeExpose KSP Processor"
+        "compose-expose-mcp" -> "ComposeExpose MCP Server"
+        "dev.huxleymc.composeexpose.gradle.plugin" -> "ComposeExpose Gradle Plugin Marker"
+        else -> artifactId
+    }
 
-fun publicationDescription(artifactId: String): String = when (artifactId) {
-    "compose-expose-core" -> "Shared ComposeExpose index schema and extraction utilities."
-    "compose-expose-gradle-plugin" -> "Gradle plugin that indexes Jetpack Compose composables for MCP discovery."
-    "compose-expose-ksp" -> "KSP processor that generates ComposeExpose composable indexes."
-    "compose-expose-mcp" -> "MCP server for querying generated ComposeExpose indexes."
-    "dev.huxleymc.composeexpose.gradle.plugin" -> "Gradle plugin marker for ComposeExpose."
-    else -> "ComposeExpose publication."
+fun publicationDescription(artifactId: String): String =
+    when (artifactId) {
+        "compose-expose-core" -> "Shared ComposeExpose index schema and extraction utilities."
+        "compose-expose-gradle-plugin" -> "Gradle plugin that indexes Jetpack Compose composables for MCP discovery."
+        "compose-expose-ksp" -> "KSP processor that generates ComposeExpose composable indexes."
+        "compose-expose-mcp" -> "MCP server for querying generated ComposeExpose indexes."
+        "dev.huxleymc.composeexpose.gradle.plugin" -> "Gradle plugin marker for ComposeExpose."
+        else -> "ComposeExpose publication."
+    }
+
+spotless {
+    kotlin {
+        target("fixtures/**/*.kt")
+        ktlint(libs.versions.ktlint.get())
+    }
+
+    kotlinGradle {
+        target("*.gradle.kts")
+        ktlint(libs.versions.ktlint.get())
+    }
 }
 
 subprojects {
     group = rootProject.group
     version = rootProject.version
+
+    apply(plugin = "com.diffplug.spotless")
+
+    configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+        kotlin {
+            target("src/**/*.kt")
+            targetExclude("**/build/**", "**/generated/**")
+            ktlint(
+                rootProject.libs.versions.ktlint
+                    .get(),
+            )
+        }
+
+        kotlinGradle {
+            target("*.gradle.kts")
+            ktlint(
+                rootProject.libs.versions.ktlint
+                    .get(),
+            )
+        }
+    }
 
     plugins.withId("maven-publish") {
         pluginManager.apply("signing")
@@ -39,7 +75,12 @@ subprojects {
             repositories {
                 maven {
                     name = "localTest"
-                    url = rootProject.layout.buildDirectory.dir("local-maven").get().asFile.toURI()
+                    url =
+                        rootProject.layout.buildDirectory
+                            .dir("local-maven")
+                            .get()
+                            .asFile
+                            .toURI()
                 }
                 providers.gradleProperty("composeExposePublishUrl").orNull?.let { publishUrl ->
                     maven {

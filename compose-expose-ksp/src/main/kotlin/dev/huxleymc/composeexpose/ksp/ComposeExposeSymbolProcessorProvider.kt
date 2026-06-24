@@ -24,13 +24,12 @@ import dev.huxleymc.composeexpose.core.SourceLocation
 import dev.huxleymc.composeexpose.core.SourceSetDetector
 
 class ComposeExposeSymbolProcessorProvider : SymbolProcessorProvider {
-    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-        return ComposeExposeSymbolProcessor(
+    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor =
+        ComposeExposeSymbolProcessor(
             codeGenerator = environment.codeGenerator,
             logger = environment.logger,
             options = environment.options,
         )
-    }
 }
 
 class ComposeExposeSymbolProcessor(
@@ -41,10 +40,11 @@ class ComposeExposeSymbolProcessor(
     private var written = false
 
     override fun process(resolver: Resolver): List<KSFunctionDeclaration> {
-        val symbols = resolver
-            .getSymbolsWithAnnotation("androidx.compose.runtime.Composable")
-            .filterIsInstance<KSFunctionDeclaration>()
-            .toList()
+        val symbols =
+            resolver
+                .getSymbolsWithAnnotation("androidx.compose.runtime.Composable")
+                .filterIsInstance<KSFunctionDeclaration>()
+                .toList()
 
         val deferred = symbols.filterNot { it.validate() }
         if (written) return deferred
@@ -52,20 +52,23 @@ class ComposeExposeSymbolProcessor(
         val module = options["composeExpose.module"] ?: ":unknown"
         val fallbackSourceSet = options["composeExpose.sourceSet"] ?: "main"
         val projectRoot = options["composeExpose.projectRoot"].orEmpty()
-        val declarations = symbols
-            .filter { it.validate() }
-            .map { it.toComposableDeclaration(module, fallbackSourceSet, projectRoot) }
-            .sortedWith(compareBy<ComposableDeclaration> { it.source.file }.thenBy { it.source.line }.thenBy { it.name })
+        val declarations =
+            symbols
+                .filter { it.validate() }
+                .map { it.toComposableDeclaration(module, fallbackSourceSet, projectRoot) }
+                .sortedWith(compareBy<ComposableDeclaration> { it.source.file }.thenBy { it.source.line }.thenBy { it.name })
 
-        val index = ComposableIndex(
-            metadata = IndexMetadata(
-                generatedAtEpochMillis = System.currentTimeMillis(),
-                projectRoot = projectRoot,
-                modules = listOf(module),
-                sourceRoots = options["composeExpose.sourceRoots"]?.split(";")?.filter { it.isNotBlank() }.orEmpty(),
-            ),
-            composables = declarations,
-        )
+        val index =
+            ComposableIndex(
+                metadata =
+                    IndexMetadata(
+                        generatedAtEpochMillis = System.currentTimeMillis(),
+                        projectRoot = projectRoot,
+                        modules = listOf(module),
+                        sourceRoots = options["composeExpose.sourceRoots"]?.split(";")?.filter { it.isNotBlank() }.orEmpty(),
+                    ),
+                composables = declarations,
+            )
 
         codeGenerator
             .createNewFileByPath(Dependencies(aggregating = true), "composeExpose/composables", "json")
@@ -84,11 +87,12 @@ class ComposeExposeSymbolProcessor(
         val location = location as? FileLocation
         val filePath = location?.filePath.orEmpty()
         val sourceSet = SourceSetDetector.detect(filePath) ?: fallbackSourceSet
-        val relativePath = if (projectRoot.isNotBlank() && filePath.startsWith(projectRoot)) {
-            filePath.removePrefix(projectRoot).trimStart('/')
-        } else {
-            filePath
-        }
+        val relativePath =
+            if (projectRoot.isNotBlank() && filePath.startsWith(projectRoot)) {
+                filePath.removePrefix(projectRoot).trimStart('/')
+            } else {
+                filePath
+            }
         val parameters = parameters.map { it.toComposableParameter() }
         val packageName = packageName.asString()
         val name = simpleName.asString()
@@ -100,49 +104,66 @@ class ComposeExposeSymbolProcessor(
             name = name,
             visibility = visibilityName(),
             source = SourceLocation(relativePath, location?.lineNumber ?: 1, 1),
-            kdoc = docString?.trim()?.let { body ->
-                Kdoc(
-                    summary = body.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty(),
-                    body = body,
-                )
-            },
+            kdoc =
+                docString?.trim()?.let { body ->
+                    Kdoc(
+                        summary =
+                            body
+                                .lineSequence()
+                                .firstOrNull { it.isNotBlank() }
+                                ?.trim()
+                                .orEmpty(),
+                        body = body,
+                    )
+                },
             parameters = parameters,
             annotations = annotations.map { "@${it.shortName.asString()}" }.toList(),
             previews = annotations.flatMap { it.toPreviews() }.toList(),
         )
     }
 
-    private fun KSValueParameter.toComposableParameter(): ComposableParameter {
-        return ComposableParameter(
+    private fun KSValueParameter.toComposableParameter(): ComposableParameter =
+        ComposableParameter(
             name = name?.asString().orEmpty(),
-            type = type.resolve().declaration.qualifiedName?.asString()
-                ?: type.resolve().declaration.simpleName.asString(),
+            type =
+                type
+                    .resolve()
+                    .declaration.qualifiedName
+                    ?.asString()
+                    ?: type
+                        .resolve()
+                        .declaration.simpleName
+                        .asString(),
             hasDefault = hasDefault,
         )
-    }
 
-    private fun KSFunctionDeclaration.visibilityName(): String {
-        return when {
+    private fun KSFunctionDeclaration.visibilityName(): String =
+        when {
             Modifier.PRIVATE in modifiers -> "private"
             Modifier.INTERNAL in modifiers -> "internal"
             Modifier.PROTECTED in modifiers -> "protected"
             else -> "public"
         }
-    }
 
     private fun KSAnnotation.toPreviews(): List<PreviewDeclaration> {
         val directName = shortName.asString()
         if (directName == "Preview") return listOf(toPreviewDeclaration("Preview"))
-        val nested = annotationType.resolve().declaration.annotations.filter { it.shortName.asString() == "Preview" }
+        val nested =
+            annotationType
+                .resolve()
+                .declaration.annotations
+                .filter { it.shortName.asString() == "Preview" }
         return nested.map { it.toPreviewDeclaration(directName) }.toList()
     }
 
     private fun KSAnnotation.toPreviewDeclaration(annotation: String): PreviewDeclaration {
-        val args = arguments.mapNotNull { argument ->
-            val name = argument.name?.asString() ?: return@mapNotNull null
-            val value = argument.value?.toString() ?: return@mapNotNull null
-            name to value
-        }.toMap()
+        val args =
+            arguments
+                .mapNotNull { argument ->
+                    val name = argument.name?.asString() ?: return@mapNotNull null
+                    val value = argument.value?.toString() ?: return@mapNotNull null
+                    name to value
+                }.toMap()
         return PreviewDeclaration(
             annotation = annotation,
             name = args["name"],

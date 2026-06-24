@@ -28,10 +28,11 @@ abstract class ComposeExposeAggregateIndexTask : DefaultTask() {
 
     @TaskAction
     fun mergeIndexes() {
-        val indexes = indexFiles.files
-            .filter { it.exists() }
-            .map { ComposableIndexJson.decode(it.readText()) }
-            .filter { it.composables.isNotEmpty() }
+        val indexes =
+            indexFiles.files
+                .filter { it.exists() }
+                .map { ComposableIndexJson.decode(it.readText()) }
+                .filter { it.composables.isNotEmpty() }
         val merged = ComposableIndexMerger.merge(projectRoot.get(), indexes)
         val target = outputFile.get().asFile
         target.parentFile.mkdirs()
