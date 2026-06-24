@@ -30,19 +30,9 @@ tasks.test {
 }
 
 publishing {
-    repositories {
-        maven {
-            name = "localTest"
-            url = rootProject.layout.buildDirectory.dir("local-maven").get().asFile.toURI()
-        }
-    }
     publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
-            pom {
-                name.set("ComposeExpose MCP Server")
-                description.set("MCP server for querying generated ComposeExpose indexes.")
-            }
         }
     }
 }

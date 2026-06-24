@@ -172,12 +172,27 @@ Use the published-consumer fixture to verify installability without `includeBuil
 
 The script publishes all artifacts to `build/local-maven`, then runs `fixtures/published-consumer` against the versioned plugin marker and KSP processor coordinates.
 
+Verify public Maven metadata before publishing externally:
+
+```bash
+./scripts/verify-publishing-metadata.sh
+```
+
+Public publishing metadata is configured for every Maven publication, including the Gradle plugin marker. Local snapshot publishing does not require signing keys. For remote publishing, provide:
+
+- `composeExposePublishUrl`
+- `composeExposePublishUsername` or `COMPOSE_EXPOSE_PUBLISH_USERNAME`
+- `composeExposePublishPassword` or `COMPOSE_EXPOSE_PUBLISH_PASSWORD`
+- `signingInMemoryKey`
+- `signingInMemoryKeyPassword`
+
 ## Production status
 
-The current implementation is usable, but still needs publishing hardening before external release.
+The current implementation is usable, but still needs broader compatibility testing and release automation before external release.
 
 - The Gradle task supports `source` and `ksp` backends.
 - Artifacts can be published to a local Maven repository and consumed by a standalone fixture without `includeBuild`.
+- Publications include Maven POM URL, license, developer, and SCM metadata, plus optional in-memory signing for non-snapshot remote publishing.
 - The demo uses the KSP backend and verifies KDoc, arguments, previews, source location, aggregate indexing, and flavor-specific composables with duplicate names.
 - KSP indexes Android source sets from file paths, so `src/free` and `src/paid` composables produce distinct stable IDs.
 - `refresh_index(module)` validates Gradle module paths before invoking Gradle.

@@ -32,12 +32,3 @@ gradlePlugin {
 tasks.test {
     useJUnitPlatform()
 }
-
-publishing {
-    repositories {
-        maven {
-            name = "localTest"
-            url = rootProject.layout.buildDirectory.dir("local-maven").get().asFile.toURI()
-        }
-    }
-}

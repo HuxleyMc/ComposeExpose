@@ -21,19 +21,9 @@ tasks.test {
 }
 
 publishing {
-    repositories {
-        maven {
-            name = "localTest"
-            url = rootProject.layout.buildDirectory.dir("local-maven").get().asFile.toURI()
-        }
-    }
     publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
-            pom {
-                name.set("ComposeExpose KSP Processor")
-                description.set("KSP processor that generates ComposeExpose composable indexes.")
-            }
         }
     }
 }
