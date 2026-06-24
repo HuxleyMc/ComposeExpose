@@ -20,6 +20,7 @@ STOPWORDS = {
 class BenchmarkResult:
     task_id: str
     method: str
+    uses_compose_expose: bool
     context_tokens: int
     hit: bool
     rank: Optional[int]
@@ -58,41 +59,42 @@ def main() -> None:
 
     results: list[BenchmarkResult] = []
     for task in tasks:
-        expected = set(task["expected"])
+        expected = normalize_expected(task["expected"])
         ranked = rank_composables(task["prompt"], composables)
         top_records = [record for _, record in ranked[: args.top_k]]
         index_context = render_index_context(top_records)
         results.append(
             BenchmarkResult(
                 task_id=task["id"],
-                method="compose_expose_top_k",
+                method="with_compose_expose_top_k",
+                uses_compose_expose=True,
                 context_tokens=count_tokens(index_context),
-                hit=contains_expected([record["name"] for record in top_records], expected),
-                rank=first_rank([record["name"] for _, record in ranked], expected),
+                hit=contains_expected_records(top_records, expected),
+                rank=first_record_rank([record for _, record in ranked], expected),
             )
         )
 
         grep_files = grep_source_files(task["prompt"], source_by_file)
         grep_context = render_source_context(grep_files)
-        grep_names = composable_names_in_context(grep_context, expected)
         results.append(
             BenchmarkResult(
                 task_id=task["id"],
-                method="grep_matching_files",
+                method="without_compose_expose_grep_files",
+                uses_compose_expose=False,
                 context_tokens=count_tokens(grep_context),
-                hit=contains_expected(grep_names, expected),
+                hit=context_contains_expected(grep_context, expected),
                 rank=None,
             )
         )
 
         source_context = render_source_context(source_by_file)
-        source_names = composable_names_in_context(source_context, expected)
         results.append(
             BenchmarkResult(
                 task_id=task["id"],
-                method="full_source_dump",
+                method="without_compose_expose_full_source",
+                uses_compose_expose=False,
                 context_tokens=count_tokens(source_context),
-                hit=contains_expected(source_names, expected),
+                hit=context_contains_expected(source_context, expected),
                 rank=None,
             )
         )
@@ -111,8 +113,10 @@ def rank_composables(prompt: str, composables: list[dict]) -> list[tuple[float, 
             "name": split_camel(record.get("name", "")),
             "package": tokenize(record.get("packageName", "")),
             "module": tokenize(record.get("module", "")),
+            "source_set": tokenize(record.get("sourceSet", "")),
             "kdoc": tokenize((record.get("kdoc") or {}).get("body", "")),
             "params": tokenize(" ".join(param.get("name", "") + " " + param.get("type", "") for param in record.get("parameters", []))),
+            "annotations": tokenize(" ".join(record.get("annotations", []))),
             "previews": tokenize(" ".join(render_preview(preview) for preview in record.get("previews", []))),
         }
         score = 0.0
@@ -120,8 +124,10 @@ def rank_composables(prompt: str, composables: list[dict]) -> list[tuple[float, 
         score += weighted_overlap(query_tokens, searchable["kdoc"], 4.0)
         score += weighted_overlap(query_tokens, searchable["params"], 2.5)
         score += weighted_overlap(query_tokens, searchable["previews"], 2.0)
+        score += weighted_overlap(query_tokens, searchable["source_set"], 2.0)
         score += weighted_overlap(query_tokens, searchable["package"], 1.0)
         score += weighted_overlap(query_tokens, searchable["module"], 1.0)
+        score += weighted_overlap(query_tokens, searchable["annotations"], 1.0)
         ranked.append((score, record))
     return sorted(ranked, key=lambda item: (-item[0], item[1].get("module", ""), item[1].get("name", "")))
 
@@ -142,6 +148,7 @@ def render_index_context(records: list[dict]) -> str:
                     f"id: {record.get('id')}",
                     f"name: {record.get('name')}",
                     f"module: {record.get('module')}",
+                    f"sourceSet: {record.get('sourceSet')}",
                     f"source: {source.get('file')}:{source.get('line')}",
                     f"kdoc: {kdoc}",
                     f"parameters: {params}",
@@ -169,19 +176,53 @@ def render_source_context(source_by_file: dict[Path, str]) -> str:
     return "\n\n".join(chunks)
 
 
-def composable_names_in_context(context: str, expected: set[str]) -> list[str]:
-    return [name for name in expected if re.search(rf"\b{name}\b", context)]
+def normalize_expected(values: list[object]) -> list[dict[str, str]]:
+    expected = []
+    for value in values:
+        if isinstance(value, str):
+            expected.append({"name": value})
+        elif isinstance(value, dict) and isinstance(value.get("name"), str):
+            expected.append({key: str(item) for key, item in value.items() if item is not None})
+        else:
+            raise ValueError(f"Unsupported expected composable entry: {value!r}")
+    return expected
 
 
-def contains_expected(names: list[str], expected: set[str]) -> bool:
-    return bool(expected.intersection(names))
+def contains_expected_records(records: list[dict], expected: list[dict[str, str]]) -> bool:
+    return any(record_matches_expected(record, item) for record in records for item in expected)
 
 
-def first_rank(names: list[str], expected: set[str]) -> Optional[int]:
-    for index, name in enumerate(names, start=1):
-        if name in expected:
+def first_record_rank(records: list[dict], expected: list[dict[str, str]]) -> Optional[int]:
+    for index, record in enumerate(records, start=1):
+        if any(record_matches_expected(record, item) for item in expected):
             return index
     return None
+
+
+def record_matches_expected(record: dict, expected: dict[str, str]) -> bool:
+    checks = {
+        "name": record.get("name"),
+        "module": record.get("module"),
+        "sourceSet": record.get("sourceSet"),
+    }
+    return all(checks.get(key) == value for key, value in expected.items() if key in checks)
+
+
+def context_contains_expected(context: str, expected: list[dict[str, str]]) -> bool:
+    return any(context_matches_expected(context, item) for item in expected)
+
+
+def context_matches_expected(context: str, expected: dict[str, str]) -> bool:
+    name = expected.get("name")
+    if not name or not re.search(rf"\b{name}\b", context):
+        return False
+    source_set = expected.get("sourceSet")
+    if source_set and f"/src/{source_set}/" not in context and f"src/{source_set}/" not in context:
+        return False
+    module = expected.get("module")
+    if module and module.strip(":").replace("-", "_") not in context.replace("-", "_"):
+        return False
+    return True
 
 
 def tokenize(value: str) -> set[str]:
@@ -232,11 +273,19 @@ def print_report(results: list[BenchmarkResult]) -> None:
         mrr = sum(1 / rank for rank in ranks) / len(method_results) if ranks else 0.0
         print(f"{method}: hit_rate={hits}/{len(method_results)} avg_tokens={avg_tokens:.1f} total_tokens={total_tokens} mrr={mrr:.3f}")
 
-    baseline = sum(result.context_tokens for result in by_method["full_source_dump"])
-    compose = sum(result.context_tokens for result in by_method["compose_expose_top_k"])
-    if compose:
-        reduction = 100 * (1 - compose / baseline)
-        print(f"ComposeExpose token reduction vs full source dump: {reduction:.1f}%")
+    compose = sum(result.context_tokens for result in by_method["with_compose_expose_top_k"])
+    baselines = {
+        method: sum(result.context_tokens for result in method_results)
+        for method, method_results in by_method.items()
+        if method.startswith("without_compose_expose")
+    }
+    if compose and baselines:
+        for method, baseline in baselines.items():
+            reduction = 100 * (1 - compose / baseline)
+            print(f"ComposeExpose token reduction vs {method}: {reduction:.1f}%")
+        best_without = min(baselines.values())
+        best_reduction = 100 * (1 - compose / best_without)
+        print(f"ComposeExpose token reduction vs best without-ComposeExpose baseline: {best_reduction:.1f}%")
 
     print("\nPer task")
     for result in results:

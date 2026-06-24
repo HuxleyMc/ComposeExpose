@@ -162,7 +162,11 @@ Run the agent-context benchmark:
 ./scripts/benchmark-agent-context.py
 ```
 
-That benchmark compares ComposeExpose structured context against grep-style matching files and full source dumps for retrieval hit rate, rank, and estimated token usage.
+That benchmark compares with-ComposeExpose structured context against without-ComposeExpose grep-style matching files and full source dumps for retrieval hit rate, rank, and estimated token usage. To verify the benchmark contract used by CI:
+
+```bash
+./scripts/verify-agent-benchmark.py
+```
 
 The demo aggregate index is written to:
 
@@ -204,6 +208,7 @@ Public publishing metadata is configured for every Maven publication, including 
 
 The current implementation is usable, but still needs broader compatibility testing and release automation before external release.
 
+- CI runs formatting, root build, demo/MCP smoke, agent-context benchmark verification, publishing metadata verification, and published-consumer smoke.
 - The Gradle task supports `source` and `ksp` backends.
 - Artifacts can be published to a local Maven repository and consumed by a standalone fixture without `includeBuild`.
 - Publications include Maven POM URL, license, developer, and SCM metadata, plus optional in-memory signing for non-snapshot remote publishing.

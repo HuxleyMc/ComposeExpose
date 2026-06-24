@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.huxleymc.composeexpose.demo.design.DemoTheme
-import dev.huxleymc.composeexpose.demo.design.MetricCard
 
 data class DashboardMetric(
     val label: String,
@@ -35,9 +34,7 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(text = title, style = MaterialTheme.typography.headlineMedium)
-        metrics.forEach { metric ->
-            MetricCard(label = metric.label, value = metric.value)
-        }
+        AdaptiveMetricsGrid(metrics = metrics)
     }
 }
 

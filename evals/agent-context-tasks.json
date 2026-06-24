@@ -28,5 +28,52 @@
     "id": "metric_preview",
     "prompt": "Find the preview composable for the metric card in the design-system preview group.",
     "expected": ["MetricCardPreview"]
+  },
+  {
+    "id": "empty_state_action",
+    "prompt": "Find the reusable empty state panel with optional action label and click handler for recovery.",
+    "expected": ["EmptyStatePanel"]
+  },
+  {
+    "id": "status_health_indicator",
+    "prompt": "Find the design-system composable for a compact health status indicator with success warning and critical tones.",
+    "expected": ["StatusPill"]
+  },
+  {
+    "id": "custom_multipreview",
+    "prompt": "Find the preview composable that uses the custom design-system multi-preview annotation for status pills.",
+    "expected": ["StatusPillPreview"]
+  },
+  {
+    "id": "filter_chip_bar",
+    "prompt": "Find the dashboard composable that renders selectable filters as chips and reports the selected filter callback.",
+    "expected": ["DashboardFilterBar"]
+  },
+  {
+    "id": "adaptive_metric_grid",
+    "prompt": "Find the dashboard composable that arranges metrics into a configurable number of columns.",
+    "expected": ["AdaptiveMetricsGrid"]
+  },
+  {
+    "id": "free_variant_badge",
+    "prompt": "Find the app composable for the free flavor variant badge with a default Free label.",
+    "expected": [
+      {
+        "name": "VariantBadge",
+        "module": ":app",
+        "sourceSet": "free"
+      }
+    ]
+  },
+  {
+    "id": "paid_variant_badge",
+    "prompt": "Find the app composable for the paid flavor variant badge with a default Paid label.",
+    "expected": [
+      {
+        "name": "VariantBadge",
+        "module": ":app",
+        "sourceSet": "paid"
+      }
+    ]
   }
 ]

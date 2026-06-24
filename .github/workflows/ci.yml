@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Build, smoke, and benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-37"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Verify CI workflow contract
+        run: ./scripts/verify-ci-workflow.py
+
+      - name: Check root formatting
+        run: ./gradlew --no-daemon spotlessCheck
+
+      - name: Check demo formatting
+        run: ./gradlew --no-daemon -p demo spotlessCheck
+
+      - name: Build all modules
+        run: ./gradlew --no-daemon clean build
+
+      - name: Smoke demo and MCP stdio
+        run: ./scripts/smoke-demo.sh
+
+      - name: Benchmark agent context
+        run: ./scripts/benchmark-agent-context.py --no-build
+
+      - name: Verify agent benchmark contract
+        run: ./scripts/verify-agent-benchmark.py
+
+      - name: Verify publishing metadata
+        run: ./scripts/verify-publishing-metadata.sh
+
+      - name: Smoke published consumer
+        run: ./scripts/smoke-published-consumer.sh

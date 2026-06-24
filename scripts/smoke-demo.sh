@@ -19,6 +19,17 @@ count = len(data.get("composables", []))
 modules = data.get("metadata", {}).get("modules", [])
 if count < 5:
     raise SystemExit(f"Expected at least 5 composables, found {count}")
+names = {item.get("name") for item in data.get("composables", [])}
+required_names = {
+    "DemoApp",
+    "DemoTheme",
+    "MetricCard",
+    "DashboardRoute",
+    "DashboardScreen",
+}
+missing_names = sorted(required_names - names)
+if missing_names:
+    raise SystemExit(f"Missing required demo composables: {', '.join(missing_names)}")
 variant_badges = [
     item for item in data.get("composables", [])
     if item.get("module") == ":app" and item.get("name") == "VariantBadge"

@@ -16,19 +16,19 @@ Workload:
 
 - Demo Android Compose app
 - 3 modules
-- 13 indexed composables, including free/paid flavor-specific composables with duplicate names
-- 6 agent-style lookup tasks in `evals/agent-context-tasks.json`
+- 20 indexed composables, including multipreview functions and free/paid flavor-specific composables with duplicate names
+- 13 agent-style lookup tasks in `evals/agent-context-tasks.json`
 - ComposeExpose context uses top 3 structured composable records
 
 Results from 2026-06-24:
 
 | Method | Hit rate | MRR | Avg tokens/task | Total tokens |
 | --- | ---: | ---: | ---: | ---: |
-| ComposeExpose top-k | 6/6 | 1.000 | 320.0 | 1,920 |
-| Grep matching files | 6/6 | n/a | 1,474.0 | 8,844 |
-| Full source dump | 6/6 | n/a | 1,663.0 | 9,978 |
+| With ComposeExpose top-k | 13/13 | 0.962 | 376.6 | 4,896 |
+| Without ComposeExpose grep files | 13/13 | n/a | 3,033.2 | 39,432 |
+| Without ComposeExpose full source | 13/13 | n/a | 3,600.0 | 46,800 |
 
-ComposeExpose reduced estimated context tokens by 80.8% versus full source dump while putting the expected composable at rank 1 for every task.
+ComposeExpose reduced estimated context tokens by 87.6% versus the best non-ComposeExpose baseline and 89.5% versus full source dump. The expected composable was in the top 3 for every task and ranked first for 12 of 13 tasks.
 
 This is not a live LLM quality benchmark yet. It is a deterministic retrieval/context benchmark that measures whether the MCP can put the right reusable composable into a much smaller prompt budget.
 
@@ -39,7 +39,7 @@ Environment:
 - Date: 2026-06-24
 - Machine: local macOS development machine
 - Command: `./scripts/benchmark-demo.sh 3`
-- Workload: standalone `demo/` Android Compose app with 3 modules and 13 indexed composables
+- Workload: standalone `demo/` Android Compose app with 3 modules and 20 indexed composables
 - Task: `composeExposeAggregateIndex`
 - Backend: KSP
 
@@ -47,11 +47,11 @@ Results:
 
 | Run | real | user | sys |
 | --- | ---: | ---: | ---: |
-| 1 | 13.10s | 0.99s | 0.13s |
-| 2 | 12.89s | 0.91s | 0.12s |
-| 3 | 13.17s | 0.91s | 0.11s |
+| 1 | 14.71s | 0.92s | 0.11s |
+| 2 | 12.59s | 0.89s | 0.11s |
+| 3 | 12.32s | 0.85s | 0.11s |
 
-The final aggregate index contained 13 composables.
+The final aggregate index contained 20 composables.
 
 To reproduce:
 
