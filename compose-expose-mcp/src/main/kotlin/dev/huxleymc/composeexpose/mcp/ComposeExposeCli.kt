@@ -28,28 +28,48 @@ object ComposeExposeCli {
         while (index < args.size) {
             when (val arg = args[index]) {
                 "--project-root" -> {
-                    projectRoot = args.requiredValue(index, arg).let(Path::of).toAbsolutePath().normalize()
+                    projectRoot =
+                        args
+                            .requiredValue(index, arg)
+                            .let(Path::of)
+                            .toAbsolutePath()
+                            .normalize()
                     index += 2
                 }
+
                 "--index-file" -> {
-                    indexFile = args.requiredValue(index, arg).let(Path::of).toAbsolutePath().normalize()
+                    indexFile =
+                        args
+                            .requiredValue(index, arg)
+                            .let(Path::of)
+                            .toAbsolutePath()
+                            .normalize()
                     index += 2
                 }
+
                 "--transport" -> {
-                    transport = when (args.requiredValue(index, arg).lowercase()) {
-                        "stdio" -> ServerTransport.Stdio
-                        "http" -> ServerTransport.Http
-                        else -> throw IllegalArgumentException("--transport must be 'stdio' or 'http'")
-                    }
+                    transport =
+                        when (args.requiredValue(index, arg).lowercase()) {
+                            "stdio" -> ServerTransport.Stdio
+                            "http" -> ServerTransport.Http
+                            else -> throw IllegalArgumentException("--transport must be 'stdio' or 'http'")
+                        }
                     index += 2
                 }
+
                 "--port" -> {
                     port = args.requiredValue(index, arg).toIntOrNull()
                         ?: throw IllegalArgumentException("--port must be an integer")
                     index += 2
                 }
-                "--help", "-h" -> throw HelpRequested(usage())
-                else -> throw IllegalArgumentException("Unknown argument: $arg\n${usage()}")
+
+                "--help", "-h" -> {
+                    throw HelpRequested(usage())
+                }
+
+                else -> {
+                    throw IllegalArgumentException("Unknown argument: $arg\n${usage()}")
+                }
             }
         }
 
@@ -61,22 +81,24 @@ object ComposeExposeCli {
         )
     }
 
-    fun usage(): String {
-        return """
-            Usage: compose-expose-mcp [options]
+    fun usage(): String =
+        """
+        Usage: compose-expose-mcp [options]
 
-            Options:
-              --project-root <path>   Gradle project root. Defaults to current directory.
-              --index-file <path>     Index JSON. Defaults to build/composeExpose/all-composables.json.
-              --transport <stdio|http> MCP transport. Defaults to stdio.
-              --port <port>           HTTP port when --transport http is used. Defaults to 3000.
-              -h, --help              Show this help.
+        Options:
+          --project-root <path>   Gradle project root. Defaults to current directory.
+          --index-file <path>     Index JSON. Defaults to build/composeExpose/all-composables.json.
+          --transport <stdio|http> MCP transport. Defaults to stdio.
+          --port <port>           HTTP port when --transport http is used. Defaults to 3000.
+          -h, --help              Show this help.
         """.trimIndent()
-    }
 
-    private fun Array<String>.requiredValue(index: Int, flag: String): String {
-        return getOrNull(index + 1) ?: throw IllegalArgumentException("Missing value for $flag")
-    }
+    private fun Array<String>.requiredValue(
+        index: Int,
+        flag: String,
+    ): String = getOrNull(index + 1) ?: throw IllegalArgumentException("Missing value for $flag")
 }
 
-class HelpRequested(message: String) : RuntimeException(message)
+class HelpRequested(
+    message: String,
+) : RuntimeException(message)

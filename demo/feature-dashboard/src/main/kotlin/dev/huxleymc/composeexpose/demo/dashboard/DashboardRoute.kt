@@ -13,11 +13,12 @@ fun DashboardRoute(
 ) {
     DashboardScreen(
         title = "Welcome, $userName",
-        metrics = listOf(
-            DashboardMetric("Open tasks", unreadCount.toString()),
-            DashboardMetric("Build health", "98%"),
-            DashboardMetric("Reusable composables", "24"),
-        ),
+        metrics =
+            listOf(
+                DashboardMetric("Open tasks", unreadCount.toString()),
+                DashboardMetric("Build health", "98%"),
+                DashboardMetric("Reusable composables", "24"),
+            ),
     )
 }
 

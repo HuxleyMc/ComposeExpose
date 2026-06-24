@@ -61,12 +61,13 @@ data class PreviewDeclaration(
 )
 
 object ComposableIndexJson {
-    private val json = Json {
-        prettyPrint = true
-        explicitNulls = false
-        encodeDefaults = true
-        ignoreUnknownKeys = true
-    }
+    private val json =
+        Json {
+            prettyPrint = true
+            explicitNulls = false
+            encodeDefaults = true
+            ignoreUnknownKeys = true
+        }
 
     fun encode(index: ComposableIndex): String = json.encodeToString(ComposableIndex.serializer(), index)
 

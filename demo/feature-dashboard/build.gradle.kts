@@ -20,9 +20,9 @@ android {
 
 dependencies {
     implementation(project(":design-system"))
-    implementation(platform("androidx.compose:compose-bom:2026.06.00"))
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    ksp("dev.huxleymc.composeexpose:compose-expose-ksp:0.1.0-SNAPSHOT")
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    ksp(libs.compose.expose.ksp)
 }

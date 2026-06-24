@@ -10,8 +10,8 @@ kotlin {
 
 dependencies {
     implementation(project(":compose-expose-core"))
-    implementation("com.google.devtools.ksp:symbol-processing-api:2.3.9")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    implementation(libs.ksp.symbol.processing.api)
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(kotlin("test"))
 }

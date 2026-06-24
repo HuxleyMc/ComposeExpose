@@ -1,9 +1,9 @@
 package dev.huxleymc.composeexpose.mcp
 
 import dev.huxleymc.composeexpose.core.ComposableIndexJson
-import io.ktor.utils.io.streams.asInput
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
+import io.ktor.utils.io.streams.asInput
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.StdioServerTransport
@@ -44,7 +44,10 @@ fun main(args: Array<String>) {
     }
 }
 
-fun runHttpServer(service: ComposeExposeService, port: Int) {
+fun runHttpServer(
+    service: ComposeExposeService,
+    port: Int,
+) {
     val mcpServer = buildComposeExposeMcpServer(service)
     embeddedServer(CIO, host = "127.0.0.1", port = port) {
         mcpStreamableHttp { mcpServer }
@@ -53,10 +56,11 @@ fun runHttpServer(service: ComposeExposeService, port: Int) {
 
 fun runStdioServer(service: ComposeExposeService) {
     val server = buildComposeExposeMcpServer(service)
-    val transport = StdioServerTransport(
-        input = System.`in`.asInput(),
-        output = System.out.asSink().buffered(),
-    )
+    val transport =
+        StdioServerTransport(
+            input = System.`in`.asInput(),
+            output = System.out.asSink().buffered(),
+        )
     runBlocking {
         val session = server.createSession(transport)
         val done = Job()
@@ -67,15 +71,18 @@ fun runStdioServer(service: ComposeExposeService) {
 
 fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
     val json = Json { prettyPrint = true }
-    val server = Server(
-        serverInfo = Implementation(name = "compose-expose", version = "0.1.0"),
-        options = ServerOptions(
-            capabilities = ServerCapabilities(
-                tools = ServerCapabilities.Tools(listChanged = false),
-                resources = ServerCapabilities.Resources(subscribe = false, listChanged = false),
-            ),
-        ),
-    )
+    val server =
+        Server(
+            serverInfo = Implementation(name = "compose-expose", version = "0.1.0"),
+            options =
+                ServerOptions(
+                    capabilities =
+                        ServerCapabilities(
+                            tools = ServerCapabilities.Tools(listChanged = false),
+                            resources = ServerCapabilities.Resources(subscribe = false, listChanged = false),
+                        ),
+                ),
+        )
 
     server.addResource(
         uri = "compose-expose://index",
@@ -84,13 +91,14 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
         mimeType = "application/json",
     ) { request ->
         ReadResourceResult(
-            contents = listOf(
-                TextResourceContents(
-                    text = ComposableIndexJson.encode(service.loadIndex()),
-                    uri = request.uri,
-                    mimeType = "application/json",
+            contents =
+                listOf(
+                    TextResourceContents(
+                        text = ComposableIndexJson.encode(service.loadIndex()),
+                        uri = request.uri,
+                        mimeType = "application/json",
+                    ),
                 ),
-            ),
         )
     }
 
@@ -101,75 +109,98 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
         mimeType = "application/json",
     ) { request ->
         ReadResourceResult(
-            contents = listOf(
-                TextResourceContents(
-                    text = json.encodeToString(service.moduleSummaries()),
-                    uri = request.uri,
-                    mimeType = "application/json",
+            contents =
+                listOf(
+                    TextResourceContents(
+                        text = json.encodeToString(service.moduleSummaries()),
+                        uri = request.uri,
+                        mimeType = "application/json",
+                    ),
                 ),
-            ),
         )
     }
 
     server.addTool(
         name = "search_composables",
         description = "Search indexed Jetpack Compose composables by name, package, or KDoc.",
-        inputSchema = ToolSchema(
-            properties = buildJsonObject {
-                put("query", buildJsonObject { put("type", "string") })
-                put("module", buildJsonObject { put("type", "string") })
-                put("sourceSet", buildJsonObject { put("type", "string") })
-                put("limit", buildJsonObject { put("type", "integer") })
-            },
-        ),
+        inputSchema =
+            ToolSchema(
+                properties =
+                    buildJsonObject {
+                        put("query", buildJsonObject { put("type", "string") })
+                        put("module", buildJsonObject { put("type", "string") })
+                        put("sourceSet", buildJsonObject { put("type", "string") })
+                        put("limit", buildJsonObject { put("type", "integer") })
+                    },
+            ),
     ) { request ->
         val args = request.arguments
-        val result = service.searchComposables(
-            query = args?.get("query")?.jsonPrimitive?.contentOrNull,
-            module = args?.get("module")?.jsonPrimitive?.contentOrNull,
-            sourceSet = args?.get("sourceSet")?.jsonPrimitive?.contentOrNull,
-            limit = args?.get("limit")?.jsonPrimitive?.intOrNull ?: 20,
-        )
+        val result =
+            service.searchComposables(
+                query = args?.get("query")?.jsonPrimitive?.contentOrNull,
+                module = args?.get("module")?.jsonPrimitive?.contentOrNull,
+                sourceSet = args?.get("sourceSet")?.jsonPrimitive?.contentOrNull,
+                limit = args?.get("limit")?.jsonPrimitive?.intOrNull ?: 20,
+            )
         CallToolResult(content = listOf(TextContent(json.encodeToString(result))))
     }
 
     server.addTool(
         name = "get_composable",
         description = "Return one indexed composable by stable id.",
-        inputSchema = ToolSchema(
-            required = listOf("id"),
-            properties = buildJsonObject {
-                put("id", buildJsonObject { put("type", "string") })
-            },
-        ),
+        inputSchema =
+            ToolSchema(
+                required = listOf("id"),
+                properties =
+                    buildJsonObject {
+                        put("id", buildJsonObject { put("type", "string") })
+                    },
+            ),
     ) { request ->
-        val id = request.arguments?.get("id")?.jsonPrimitive?.contentOrNull.orEmpty()
+        val id =
+            request.arguments
+                ?.get("id")
+                ?.jsonPrimitive
+                ?.contentOrNull
+                .orEmpty()
         CallToolResult(content = listOf(TextContent(json.encodeToString(service.getComposable(id)))))
     }
 
     server.addTool(
         name = "list_previews",
         description = "List indexed Compose previews, optionally filtered by preview group.",
-        inputSchema = ToolSchema(
-            properties = buildJsonObject {
-                put("group", buildJsonObject { put("type", "string") })
-            },
-        ),
+        inputSchema =
+            ToolSchema(
+                properties =
+                    buildJsonObject {
+                        put("group", buildJsonObject { put("type", "string") })
+                    },
+            ),
     ) { request ->
-        val group = request.arguments?.get("group")?.jsonPrimitive?.contentOrNull
+        val group =
+            request.arguments
+                ?.get("group")
+                ?.jsonPrimitive
+                ?.contentOrNull
         CallToolResult(content = listOf(TextContent(json.encodeToString(service.listPreviews(group)))))
     }
 
     server.addTool(
         name = "refresh_index",
         description = "Run the Gradle composeExposeIndex task and reload the generated index.",
-        inputSchema = ToolSchema(
-            properties = buildJsonObject {
-                put("module", buildJsonObject { put("type", "string") })
-            },
-        ),
+        inputSchema =
+            ToolSchema(
+                properties =
+                    buildJsonObject {
+                        put("module", buildJsonObject { put("type", "string") })
+                    },
+            ),
     ) { request ->
-        val module = request.arguments?.get("module")?.jsonPrimitive?.contentOrNull
+        val module =
+            request.arguments
+                ?.get("module")
+                ?.jsonPrimitive
+                ?.contentOrNull
         val result = runBlocking { service.refreshIndex(module) }
         CallToolResult(content = listOf(TextContent(json.encodeToString(result))))
     }

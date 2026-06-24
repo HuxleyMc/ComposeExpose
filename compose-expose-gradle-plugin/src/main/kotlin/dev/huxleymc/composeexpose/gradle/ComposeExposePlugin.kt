@@ -37,9 +37,10 @@ class ComposeExposePlugin : Plugin<Project> {
         project.gradle.projectsEvaluated {
             if (extension.backend.get().lowercase() == "ksp") {
                 project.configureKspArguments(extension)
-                val kspTasks = project.tasks.matching { task ->
-                    task.name.startsWith("ksp") && task.name.endsWith("Kotlin")
-                }
+                val kspTasks =
+                    project.tasks.matching { task ->
+                        task.name.startsWith("ksp") && task.name.endsWith("Kotlin")
+                    }
                 project.tasks.named("composeExposeIndex").configure { task ->
                     task.dependsOn(kspTasks)
                 }
@@ -47,20 +48,22 @@ class ComposeExposePlugin : Plugin<Project> {
         }
 
         if (project == project.rootProject) {
-            val aggregate = project.tasks.register(
-                "composeExposeAggregateIndex",
-                ComposeExposeAggregateIndexTask::class.java,
-            ) { task ->
-                task.group = "compose expose"
-                task.description = "Merges ComposeExpose indexes from all indexed projects."
-                task.projectRoot.set(project.rootProject.layout.projectDirectory.asFile.absolutePath)
-                task.outputFile.set(project.layout.buildDirectory.file("composeExpose/all-composables.json"))
-            }
+            val aggregate =
+                project.tasks.register(
+                    "composeExposeAggregateIndex",
+                    ComposeExposeAggregateIndexTask::class.java,
+                ) { task ->
+                    task.group = "compose expose"
+                    task.description = "Merges ComposeExpose indexes from all indexed projects."
+                    task.projectRoot.set(project.rootProject.layout.projectDirectory.asFile.absolutePath)
+                    task.outputFile.set(project.layout.buildDirectory.file("composeExpose/all-composables.json"))
+                }
 
             project.gradle.projectsEvaluated {
-                val indexTasks = project.allprojects
-                    .mapNotNull { candidate -> candidate.tasks.findByName("composeExposeIndex") as? ComposeExposeIndexTask }
-                    .filter { indexTask -> indexTask.project != project || project.subprojects.isEmpty() }
+                val indexTasks =
+                    project.allprojects
+                        .mapNotNull { candidate -> candidate.tasks.findByName("composeExposeIndex") as? ComposeExposeIndexTask }
+                        .filter { indexTask -> indexTask.project != project || project.subprojects.isEmpty() }
 
                 aggregate.configure { task ->
                     task.dependsOn(indexTasks)
@@ -72,9 +75,14 @@ class ComposeExposePlugin : Plugin<Project> {
 
     private fun Project.configureKspArguments(extension: ComposeExposeExtension) {
         pluginManager.withPlugin("com.google.devtools.ksp") {
-            val sourceRoots = extension.sourceRoots.get()
-                .map { layout.projectDirectory.dir(it).asFile.absolutePath }
-                .joinToString(";")
+            val sourceRoots =
+                extension.sourceRoots
+                    .get()
+                    .map {
+                        layout.projectDirectory
+                            .dir(it)
+                            .asFile.absolutePath
+                    }.joinToString(";")
             extensions.configure(KspExtension::class.java) { ksp ->
                 ksp.arg("composeExpose.module", extension.moduleName.get())
                 ksp.arg("composeExpose.sourceSet", extension.sourceSet.get())
@@ -90,6 +98,7 @@ class ComposeExposePlugin : Plugin<Project> {
             runCatching {
                 val packaging = androidExtension.javaClass.getMethod("getPackaging").invoke(androidExtension)
                 val resources = packaging.javaClass.getMethod("getResources").invoke(packaging)
+
                 @Suppress("UNCHECKED_CAST")
                 val excludes = resources.javaClass.getMethod("getExcludes").invoke(resources) as MutableSet<String>
                 excludes += "composeExpose/composables.json"

@@ -28,9 +28,10 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(text = title, style = MaterialTheme.typography.headlineMedium)
@@ -46,10 +47,11 @@ private fun DashboardScreenPreview() {
     DemoTheme {
         DashboardScreen(
             title = "Welcome, Huxley",
-            metrics = listOf(
-                DashboardMetric("Open tasks", "7"),
-                DashboardMetric("Build health", "98%"),
-            ),
+            metrics =
+                listOf(
+                    DashboardMetric("Open tasks", "7"),
+                    DashboardMetric("Build health", "98%"),
+                ),
         )
     }
 }

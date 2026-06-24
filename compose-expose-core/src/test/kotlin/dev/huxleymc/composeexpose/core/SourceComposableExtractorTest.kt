@@ -1,13 +1,13 @@
 package dev.huxleymc.composeexpose.core
 
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Path
 
 class SourceComposableExtractorTest {
     @TempDir
@@ -48,19 +48,25 @@ class SourceComposableExtractorTest {
             """.trimIndent(),
         )
 
-        val index = SourceComposableExtractor().extract(
-            module = ":app",
-            sourceSet = "main",
-            sourceRoots = listOf(sourceRoot),
-            projectRoot = tempDir,
-        )
+        val index =
+            SourceComposableExtractor().extract(
+                module = ":app",
+                sourceSet = "main",
+                sourceRoots = listOf(sourceRoot),
+                projectRoot = tempDir,
+            )
 
         assertEquals(2, index.composables.size)
         val card = assertNotNull(index.composables.singleOrNull { it.name == "AccountCard" })
         assertEquals("dev.example", card.packageName)
         assertEquals("internal", card.visibility)
         assertEquals("Shows the primary account card.", card.kdoc?.summary)
-        assertTrue(card.kdoc?.body.orEmpty().contains("compact and expanded"))
+        assertTrue(
+            card.kdoc
+                ?.body
+                .orEmpty()
+                .contains("compact and expanded"),
+        )
         assertEquals(listOf("title", "balance", "onClick"), card.parameters.map { it.name })
         assertEquals("Long", card.parameters.single { it.name == "balance" }.type)
         assertTrue(card.parameters.single { it.name == "balance" }.hasDefault)

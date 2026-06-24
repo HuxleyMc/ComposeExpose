@@ -8,6 +8,9 @@ import dev.huxleymc.composeexpose.core.IndexMetadata
 import dev.huxleymc.composeexpose.core.Kdoc
 import dev.huxleymc.composeexpose.core.PreviewDeclaration
 import dev.huxleymc.composeexpose.core.SourceLocation
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.getLastModifiedTime
 import kotlin.io.path.writeText
@@ -16,181 +19,196 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Path
 
 class ComposeExposeServiceTest {
     @TempDir
     lateinit var tempDir: Path
 
     @Test
-    fun `search get and list previews read from index deterministically`() = runTest {
-        val indexFile = writeIndex(sampleIndex())
-        val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+    fun `search get and list previews read from index deterministically`() =
+        runTest {
+            val indexFile = writeIndex(sampleIndex())
+            val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
 
-        assertEquals(listOf("AccountCard"), service.searchComposables(query = "account").map { it.name })
-        assertEquals("AccountCard", service.getComposable(":app:main:dev.example.AccountCard#title:String")?.name)
-        assertEquals(listOf("AccountCard"), service.listPreviews(group = "device").map { it.composableName })
-    }
-
-    @Test
-    fun `search ranks exact name matches first and limits results`() = runTest {
-        val indexFile = writeIndex(
-            sampleIndex(
-                extraDeclarations = listOf(
-                    sampleComposable(
-                        name = "AccountCardPreviewHost",
-                        source = "app/src/main/kotlin/dev/example/AccountPreview.kt",
-                    ),
-                    sampleComposable(
-                        name = "BillingPanel",
-                        source = "app/src/main/kotlin/dev/account/BillingPanel.kt",
-                        packageName = "dev.account",
-                    ),
-                    sampleComposable(
-                        name = "BalanceTile",
-                        source = "app/src/main/kotlin/dev/example/BalanceTile.kt",
-                        kdocBody = "Uses the reusable account visual treatment.",
-                    ),
-                ),
-            ),
-        )
-        val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
-
-        val results = service.searchComposables(query = "AccountCard", limit = 2)
-
-        assertEquals(listOf("AccountCard", "AccountCardPreviewHost"), results.map { it.name })
-    }
+            assertEquals(listOf("AccountCard"), service.searchComposables(query = "account").map { it.name })
+            assertEquals("AccountCard", service.getComposable(":app:main:dev.example.AccountCard#title:String")?.name)
+            assertEquals(listOf("AccountCard"), service.listPreviews(group = "device").map { it.composableName })
+        }
 
     @Test
-    fun `module summaries include counts packages previews and source sets`() = runTest {
-        val indexFile = writeIndex(
-            sampleIndex(
-                metadata = IndexMetadata(
-                    generatedAtEpochMillis = 1234L,
-                    projectRoot = tempDir.toString(),
-                    modules = listOf(":app", ":design"),
-                    sourceRoots = listOf(
-                        tempDir.resolve("app/src/main/kotlin").toString(),
-                        tempDir.resolve("design/src/main/kotlin").toString(),
+    fun `search ranks exact name matches first and limits results`() =
+        runTest {
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        extraDeclarations =
+                            listOf(
+                                sampleComposable(
+                                    name = "AccountCardPreviewHost",
+                                    source = "app/src/main/kotlin/dev/example/AccountPreview.kt",
+                                ),
+                                sampleComposable(
+                                    name = "BillingPanel",
+                                    source = "app/src/main/kotlin/dev/account/BillingPanel.kt",
+                                    packageName = "dev.account",
+                                ),
+                                sampleComposable(
+                                    name = "BalanceTile",
+                                    source = "app/src/main/kotlin/dev/example/BalanceTile.kt",
+                                    kdocBody = "Uses the reusable account visual treatment.",
+                                ),
+                            ),
                     ),
-                ),
-                extraDeclarations = listOf(
-                    sampleComposable(
-                        name = "VariantBadge",
-                        source = "app/src/free/kotlin/dev/example/VariantBadge.kt",
-                        sourceSet = "free",
+                )
+            val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+
+            val results = service.searchComposables(query = "AccountCard", limit = 2)
+
+            assertEquals(listOf("AccountCard", "AccountCardPreviewHost"), results.map { it.name })
+        }
+
+    @Test
+    fun `module summaries include counts packages previews and source sets`() =
+        runTest {
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        metadata =
+                            IndexMetadata(
+                                generatedAtEpochMillis = 1234L,
+                                projectRoot = tempDir.toString(),
+                                modules = listOf(":app", ":design"),
+                                sourceRoots =
+                                    listOf(
+                                        tempDir.resolve("app/src/main/kotlin").toString(),
+                                        tempDir.resolve("design/src/main/kotlin").toString(),
+                                    ),
+                            ),
+                        extraDeclarations =
+                            listOf(
+                                sampleComposable(
+                                    name = "VariantBadge",
+                                    source = "app/src/free/kotlin/dev/example/VariantBadge.kt",
+                                    sourceSet = "free",
+                                ),
+                                sampleComposable(
+                                    name = "ThemeWrapper",
+                                    source = "design/src/main/kotlin/dev/design/ThemeWrapper.kt",
+                                    module = ":design",
+                                    packageName = "dev.design",
+                                ),
+                            ),
                     ),
-                    sampleComposable(
-                        name = "ThemeWrapper",
-                        source = "design/src/main/kotlin/dev/design/ThemeWrapper.kt",
-                        module = ":design",
-                        packageName = "dev.design",
+                )
+            val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+
+            val summaries = service.moduleSummaries()
+
+            assertEquals(1234L, summaries.generatedAtEpochMillis)
+            assertEquals(2, summaries.modules.size)
+            val app = summaries.modules.single { it.module == ":app" }
+            assertEquals(2, app.composableCount)
+            assertEquals(1, app.previewCount)
+            assertEquals(listOf("free", "main"), app.sourceSets)
+            assertEquals(listOf("dev.example"), app.packages)
+            val design = summaries.modules.single { it.module == ":design" }
+            assertEquals(1, design.composableCount)
+            assertEquals(listOf("dev.design"), design.packages)
+        }
+
+    @Test
+    fun `status reports stale source without running gradle`() =
+        runTest {
+            val sourceRoot = tempDir.resolve("app/src/main/kotlin").createDirectories()
+            val sourceFile = sourceRoot.resolve("Cards.kt")
+            sourceFile.writeText("@Composable fun AccountCard() {}")
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        metadata =
+                            IndexMetadata(
+                                generatedAtEpochMillis = sourceFile.getLastModifiedTime().toMillis() - 1_000,
+                                projectRoot = tempDir.toString(),
+                                modules = listOf(":app"),
+                                sourceRoots = listOf(sourceRoot.toString()),
+                            ),
                     ),
-                ),
-            ),
-        )
-        val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+                )
+            val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
 
-        val summaries = service.moduleSummaries()
+            val status = service.indexStatus()
 
-        assertEquals(1234L, summaries.generatedAtEpochMillis)
-        assertEquals(2, summaries.modules.size)
-        val app = summaries.modules.single { it.module == ":app" }
-        assertEquals(2, app.composableCount)
-        assertEquals(1, app.previewCount)
-        assertEquals(listOf("free", "main"), app.sourceSets)
-        assertEquals(listOf("dev.example"), app.packages)
-        val design = summaries.modules.single { it.module == ":design" }
-        assertEquals(1, design.composableCount)
-        assertEquals(listOf("dev.design"), design.packages)
-    }
+            assertTrue(status.isStale)
+            assertEquals(listOf(":app"), status.modules)
+            assertFalse(status.refreshInProgress)
+        }
 
     @Test
-    fun `status reports stale source without running gradle`() = runTest {
-        val sourceRoot = tempDir.resolve("app/src/main/kotlin").createDirectories()
-        val sourceFile = sourceRoot.resolve("Cards.kt")
-        sourceFile.writeText("@Composable fun AccountCard() {}")
-        val indexFile = writeIndex(
-            sampleIndex(
-                metadata = IndexMetadata(
-                    generatedAtEpochMillis = sourceFile.getLastModifiedTime().toMillis() - 1_000,
-                    projectRoot = tempDir.toString(),
-                    modules = listOf(":app"),
-                    sourceRoots = listOf(sourceRoot.toString()),
-                ),
-            ),
-        )
-        val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+    fun `refresh invokes gradle task and reloads index`() =
+        runTest {
+            val indexFile = writeIndex(sampleIndex())
+            var invoked = emptyList<String>()
+            val service =
+                ComposeExposeService(
+                    projectRoot = tempDir,
+                    indexFile = indexFile,
+                    gradleRunner = { args ->
+                        invoked = args
+                        writeIndex(sampleIndex(extraName = "FreshCard"))
+                        RefreshExecution(exitCode = 0, output = "indexed")
+                    },
+                )
 
-        val status = service.indexStatus()
+            val result = service.refreshIndex(module = ":app")
 
-        assertTrue(status.isStale)
-        assertEquals(listOf(":app"), status.modules)
-        assertFalse(status.refreshInProgress)
-    }
-
-    @Test
-    fun `refresh invokes gradle task and reloads index`() = runTest {
-        val indexFile = writeIndex(sampleIndex())
-        var invoked = emptyList<String>()
-        val service = ComposeExposeService(
-            projectRoot = tempDir,
-            indexFile = indexFile,
-            gradleRunner = { args ->
-                invoked = args
-                writeIndex(sampleIndex(extraName = "FreshCard"))
-                RefreshExecution(exitCode = 0, output = "indexed")
-            },
-        )
-
-        val result = service.refreshIndex(module = ":app")
-
-        assertEquals(listOf("./gradlew", ":app:composeExposeIndex"), invoked)
-        assertTrue(result.success)
-        assertFalse(result.status.refreshInProgress)
-        assertNotNull(service.getComposable(":app:main:dev.example.FreshCard#"))
-    }
+            assertEquals(listOf("./gradlew", ":app:composeExposeIndex"), invoked)
+            assertTrue(result.success)
+            assertFalse(result.status.refreshInProgress)
+            assertNotNull(service.getComposable(":app:main:dev.example.FreshCard#"))
+        }
 
     @Test
-    fun `refresh returns structured failure and resets in-progress flag when gradle runner throws`() = runTest {
-        val indexFile = writeIndex(sampleIndex())
-        val service = ComposeExposeService(
-            projectRoot = tempDir,
-            indexFile = indexFile,
-            gradleRunner = {
-                throw IllegalStateException("gradle unavailable")
-            },
-        )
+    fun `refresh returns structured failure and resets in-progress flag when gradle runner throws`() =
+        runTest {
+            val indexFile = writeIndex(sampleIndex())
+            val service =
+                ComposeExposeService(
+                    projectRoot = tempDir,
+                    indexFile = indexFile,
+                    gradleRunner = {
+                        throw IllegalStateException("gradle unavailable")
+                    },
+                )
 
-        val result = service.refreshIndex()
+            val result = service.refreshIndex()
 
-        assertFalse(result.success)
-        assertTrue(result.output.contains("gradle unavailable"))
-        assertFalse(result.status.refreshInProgress)
-        assertFalse(service.indexStatus().refreshInProgress)
-    }
+            assertFalse(result.success)
+            assertTrue(result.output.contains("gradle unavailable"))
+            assertFalse(result.status.refreshInProgress)
+            assertFalse(service.indexStatus().refreshInProgress)
+        }
 
     @Test
-    fun `refresh rejects invalid module paths before invoking gradle`() = runTest {
-        val indexFile = writeIndex(sampleIndex())
-        var invoked = false
-        val service = ComposeExposeService(
-            projectRoot = tempDir,
-            indexFile = indexFile,
-            gradleRunner = {
-                invoked = true
-                RefreshExecution(exitCode = 0, output = "should not run")
-            },
-        )
+    fun `refresh rejects invalid module paths before invoking gradle`() =
+        runTest {
+            val indexFile = writeIndex(sampleIndex())
+            var invoked = false
+            val service =
+                ComposeExposeService(
+                    projectRoot = tempDir,
+                    indexFile = indexFile,
+                    gradleRunner = {
+                        invoked = true
+                        RefreshExecution(exitCode = 0, output = "should not run")
+                    },
+                )
 
-        val result = service.refreshIndex(module = "../app")
+            val result = service.refreshIndex(module = "../app")
 
-        assertFalse(result.success)
-        assertFalse(invoked)
-        assertTrue(result.output.contains("Invalid Gradle module path"))
-    }
+            assertFalse(result.success)
+            assertFalse(invoked)
+            assertTrue(result.output.contains("Invalid Gradle module path"))
+        }
 
     private fun writeIndex(index: ComposableIndex): Path {
         val indexFile = tempDir.resolve("build/composeExpose/composables.json")
@@ -204,32 +222,33 @@ class ComposeExposeServiceTest {
         extraName: String? = null,
         extraDeclarations: List<ComposableDeclaration> = emptyList(),
     ): ComposableIndex {
-        val composables = buildList {
-            add(
-                ComposableDeclaration(
-                    id = ":app:main:dev.example.AccountCard#title:String",
-                    module = ":app",
-                    sourceSet = "main",
-                    packageName = "dev.example",
-                    name = "AccountCard",
-                    visibility = "public",
-                    source = SourceLocation("app/src/main/kotlin/dev/example/Cards.kt", 8, 1),
-                    kdoc = null,
-                    parameters = listOf(ComposableParameter("title", "String", hasDefault = false)),
-                    annotations = listOf("@Composable", "@Preview"),
-                    previews = listOf(PreviewDeclaration("Preview", "Phone", "device", mapOf("widthDp" to "390"))),
-                ),
-            )
-            if (extraName != null) {
+        val composables =
+            buildList {
                 add(
-                    sampleComposable(
-                        name = extraName,
-                        source = "app/src/main/kotlin/dev/example/Fresh.kt",
+                    ComposableDeclaration(
+                        id = ":app:main:dev.example.AccountCard#title:String",
+                        module = ":app",
+                        sourceSet = "main",
+                        packageName = "dev.example",
+                        name = "AccountCard",
+                        visibility = "public",
+                        source = SourceLocation("app/src/main/kotlin/dev/example/Cards.kt", 8, 1),
+                        kdoc = null,
+                        parameters = listOf(ComposableParameter("title", "String", hasDefault = false)),
+                        annotations = listOf("@Composable", "@Preview"),
+                        previews = listOf(PreviewDeclaration("Preview", "Phone", "device", mapOf("widthDp" to "390"))),
                     ),
                 )
+                if (extraName != null) {
+                    add(
+                        sampleComposable(
+                            name = extraName,
+                            source = "app/src/main/kotlin/dev/example/Fresh.kt",
+                        ),
+                    )
+                }
+                addAll(extraDeclarations)
             }
-            addAll(extraDeclarations)
-        }
         return ComposableIndex(metadata, composables)
     }
 
@@ -240,8 +259,8 @@ class ComposeExposeServiceTest {
         sourceSet: String = "main",
         packageName: String = "dev.example",
         kdocBody: String? = null,
-    ): ComposableDeclaration {
-        return ComposableDeclaration(
+    ): ComposableDeclaration =
+        ComposableDeclaration(
             id = "$module:$sourceSet:$packageName.$name#",
             module = module,
             sourceSet = sourceSet,
@@ -254,5 +273,4 @@ class ComposeExposeServiceTest {
             annotations = listOf("@Composable"),
             previews = emptyList(),
         )
-    }
 }
