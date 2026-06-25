@@ -116,4 +116,40 @@ class SourceComposableExtractorTest {
         assertEquals(listOf("label", "enabled"), action.parameters.map { it.name })
         assertEquals(":design:main:dev.example.PrimaryAction#label:String,enabled:Boolean", action.id)
     }
+
+    @Test
+    fun `extracts generic composables`() {
+        val sourceRoot = tempDir.resolve("src/main/kotlin").createDirectories()
+        val source = sourceRoot.resolve("dev/example/Lists.kt")
+        source.parent.createDirectories()
+        source.writeText(
+            """
+            package dev.example
+
+            import androidx.compose.runtime.Composable
+
+            @Composable
+            fun <T : Any> ReusableList(
+                items: List<T>,
+                selected: T? = null,
+            ) {
+            }
+            """.trimIndent(),
+        )
+
+        val index =
+            SourceComposableExtractor().extract(
+                module = ":feature",
+                sourceSet = "main",
+                sourceRoots = listOf(sourceRoot),
+                projectRoot = tempDir,
+            )
+
+        val list = assertNotNull(index.composables.singleOrNull())
+        assertEquals("ReusableList", list.name)
+        assertEquals(listOf("items", "selected"), list.parameters.map { it.name })
+        assertEquals("List<T>", list.parameters.single { it.name == "items" }.type)
+        assertEquals("T?", list.parameters.single { it.name == "selected" }.type)
+        assertEquals(":feature:main:dev.example.ReusableList#items:List<T>,selected:T?", list.id)
+    }
 }
