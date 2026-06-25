@@ -1,13 +1,14 @@
 package dev.huxleymc.composeexpose.mcp
 
 import dev.huxleymc.composeexpose.core.ComposableIndexJson
+import io.ktor.server.application.Application
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.utils.io.streams.asInput
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.StdioServerTransport
-import io.modelcontextprotocol.kotlin.sdk.server.mcpStreamableHttp
+import io.modelcontextprotocol.kotlin.sdk.server.mcpStatelessStreamableHttp
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceResult
@@ -48,10 +49,15 @@ fun runHttpServer(
     service: ComposeExposeService,
     port: Int,
 ) {
-    val mcpServer = buildComposeExposeMcpServer(service)
     embeddedServer(CIO, host = "127.0.0.1", port = port) {
-        mcpStreamableHttp { mcpServer }
+        installComposeExposeHttpTransport(service)
     }.start(wait = true)
+}
+
+fun Application.installComposeExposeHttpTransport(service: ComposeExposeService) {
+    mcpStatelessStreamableHttp {
+        buildComposeExposeMcpServer(service)
+    }
 }
 
 fun runStdioServer(service: ComposeExposeService) {

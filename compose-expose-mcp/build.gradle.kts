@@ -17,6 +17,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.ktor.client.cio)
     testImplementation(libs.mcp.kotlin.sdk.testing)
     testImplementation(libs.kotlinx.coroutines.test)
 }
