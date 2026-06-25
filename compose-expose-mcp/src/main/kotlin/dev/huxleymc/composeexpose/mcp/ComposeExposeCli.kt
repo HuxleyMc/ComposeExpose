@@ -20,7 +20,7 @@ object ComposeExposeCli {
         defaultProjectRoot: Path = Path.of(System.getProperty("user.dir")),
     ): ComposeExposeServerOptions {
         var projectRoot = defaultProjectRoot.toAbsolutePath().normalize()
-        var indexFile: Path? = null
+        var indexFileArgument: Path? = null
         var transport = ServerTransport.Stdio
         var port = 3000
         var index = 0
@@ -38,12 +38,10 @@ object ComposeExposeCli {
                 }
 
                 "--index-file" -> {
-                    indexFile =
+                    indexFileArgument =
                         args
                             .requiredValue(index, arg)
                             .let(Path::of)
-                            .toAbsolutePath()
-                            .normalize()
                     index += 2
                 }
 
@@ -81,7 +79,7 @@ object ComposeExposeCli {
 
         return ComposeExposeServerOptions(
             projectRoot = projectRoot,
-            indexFile = indexFile ?: projectRoot.resolve("build/composeExpose/all-composables.json"),
+            indexFile = indexFileArgument?.resolveAgainst(projectRoot) ?: projectRoot.resolve("build/composeExpose/all-composables.json"),
             transport = transport,
             port = port,
         )
@@ -93,7 +91,7 @@ object ComposeExposeCli {
 
         Options:
           --project-root <path>   Gradle project root. Defaults to current directory.
-          --index-file <path>     Index JSON. Defaults to build/composeExpose/all-composables.json.
+          --index-file <path>     Index JSON. Relative paths resolve from --project-root.
           --transport <stdio|http> MCP transport. Defaults to stdio.
           --port <port>           HTTP port from 1 to 65535 when --transport http is used. Defaults to 3000.
           -h, --help              Show this help.
@@ -103,6 +101,13 @@ object ComposeExposeCli {
         index: Int,
         flag: String,
     ): String = getOrNull(index + 1) ?: throw IllegalArgumentException("Missing value for $flag")
+
+    private fun Path.resolveAgainst(projectRoot: Path): Path =
+        if (isAbsolute) {
+            normalize()
+        } else {
+            projectRoot.resolve(this).normalize()
+        }
 
     private const val MIN_PORT = 1
     private const val MAX_PORT = 65535

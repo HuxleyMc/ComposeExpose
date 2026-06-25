@@ -38,6 +38,22 @@ class ComposeExposeCliTest {
     }
 
     @Test
+    fun `resolves relative index file from project root`() {
+        val options =
+            ComposeExposeCli.parse(
+                arrayOf(
+                    "--project-root",
+                    "/repo",
+                    "--index-file",
+                    "build/composeExpose/custom.json",
+                ),
+                defaultProjectRoot = Path.of("/ignored"),
+            )
+
+        assertEquals(Path.of("/repo/build/composeExpose/custom.json"), options.indexFile)
+    }
+
+    @Test
     fun `rejects unknown arguments`() {
         assertFailsWith<IllegalArgumentException> {
             ComposeExposeCli.parse(arrayOf("--wat"), defaultProjectRoot = Path.of("/repo"))

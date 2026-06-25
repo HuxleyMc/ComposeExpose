@@ -74,6 +74,8 @@ Use an explicit index file when needed:
 ./gradlew :compose-expose-mcp:run --args="--project-root /path/to/project --index-file /path/to/project/build/composeExpose/all-composables.json"
 ```
 
+Relative `--index-file` values resolve from `--project-root`.
+
 Example MCP client config:
 
 ```json
