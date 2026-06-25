@@ -135,12 +135,16 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
             ToolSchema(
                 properties =
                     buildJsonObject {
-                        put("query", buildJsonObject { put("type", "string") })
-                        put("module", buildJsonObject { put("type", "string") })
-                        put("sourceSet", buildJsonObject { put("type", "string") })
-                        put("limit", buildJsonObject { put("type", "integer") })
+                        put(
+                            "query",
+                            stringSchema("Text to match against composable name, package, KDoc, parameters, annotations, or previews."),
+                        )
+                        put("module", stringSchema("Optional Gradle module path filter, for example :app."))
+                        put("sourceSet", stringSchema("Optional source set filter, for example main, debug, free, or paid."))
+                        put("limit", integerSchema("Maximum results to return.", minimum = 1, maximum = 100))
                     },
             ),
+        outputSchema = toolOutputSchema("results", arraySchema("Matched composable declarations.")),
     ) { request ->
         toolResult(json, "results") {
             val args = request.arguments
@@ -161,8 +165,13 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                 required = listOf("id"),
                 properties =
                     buildJsonObject {
-                        put("id", buildJsonObject { put("type", "string") })
+                        put("id", stringSchema("Stable composable id from search_composables or the index resource."))
                     },
+            ),
+        outputSchema =
+            toolOutputSchema(
+                "composable",
+                nullableObjectSchema("Matched composable declaration, or null when the id is unknown."),
             ),
     ) { request ->
         toolResult(json, "composable") {
@@ -178,9 +187,10 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
             ToolSchema(
                 properties =
                     buildJsonObject {
-                        put("group", buildJsonObject { put("type", "string") })
+                        put("group", stringSchema("Optional Compose preview group filter."))
                     },
             ),
+        outputSchema = toolOutputSchema("previews", arraySchema("Indexed Compose preview declarations with their parent composable ids.")),
     ) { request ->
         toolResult(json, "previews") {
             val group = request.arguments.optionalString("list_previews", "group")
@@ -195,8 +205,13 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
             ToolSchema(
                 properties =
                     buildJsonObject {
-                        put("module", buildJsonObject { put("type", "string") })
+                        put("module", stringSchema("Optional Gradle module path to index before refreshing the aggregate index."))
                     },
+            ),
+        outputSchema =
+            toolOutputSchema(
+                "result",
+                objectSchema("Refresh result with success, Gradle output, and a fresh index_status snapshot."),
             ),
     ) { request ->
         toolResult(json, "result") {
@@ -208,6 +223,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
     server.addTool(
         name = "index_status",
         description = "Report index age, source roots, modules, and whether sources are newer than the index.",
+        outputSchema = toolOutputSchema("status", objectSchema("Current index freshness and source-root status.")),
     ) {
         toolResult(json, "status") {
             service.indexStatus()
@@ -216,6 +232,70 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
 
     return server
 }
+
+private fun toolOutputSchema(
+    key: String,
+    schema: JsonObject,
+): ToolSchema =
+    ToolSchema(
+        required = listOf(key),
+        properties =
+            buildJsonObject {
+                put(key, schema)
+            },
+    )
+
+private fun stringSchema(description: String): JsonObject =
+    buildJsonObject {
+        put("type", "string")
+        put("description", description)
+    }
+
+private fun integerSchema(
+    description: String,
+    minimum: Int,
+    maximum: Int,
+): JsonObject =
+    buildJsonObject {
+        put("type", "integer")
+        put("description", description)
+        put("minimum", minimum)
+        put("maximum", maximum)
+    }
+
+private fun arraySchema(description: String): JsonObject =
+    buildJsonObject {
+        put("type", "array")
+        put("description", description)
+        put(
+            "items",
+            buildJsonObject {
+                put("type", "object")
+            },
+        )
+    }
+
+private fun objectSchema(description: String): JsonObject =
+    buildJsonObject {
+        put("type", "object")
+        put("description", description)
+    }
+
+private fun nullableObjectSchema(description: String): JsonObject =
+    buildJsonObject {
+        put("description", description)
+        put(
+            "anyOf",
+            kotlinx.serialization.json.buildJsonArray {
+                add(objectSchema("Composable declaration."))
+                add(
+                    buildJsonObject {
+                        put("type", "null")
+                    },
+                )
+            },
+        )
+    }
 
 private inline fun <reified T> toolResult(
     json: Json,

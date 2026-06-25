@@ -53,7 +53,17 @@ class ComposeExposeMcpProtocolTest {
                 serverJob.join()
 
                 val tools = client.listTools()
-                assertTrue(tools.tools.any { it.name == "search_composables" })
+                val searchTool = assertNotNull(tools.tools.firstOrNull { it.name == "search_composables" })
+                val searchOutputSchema = searchTool.outputSchema ?: error("search_composables outputSchema was missing")
+                val searchOutputProperties = assertNotNull(searchOutputSchema.properties)
+                assertEquals(
+                    "array",
+                    searchOutputProperties["results"]
+                        ?.jsonObject
+                        ?.get("type")
+                        ?.jsonPrimitive
+                        ?.content,
+                )
 
                 val result = client.callTool("search_composables", mapOf("query" to "AccountCard", "limit" to 1))
 
