@@ -72,6 +72,9 @@ jobs:
       - name: Smoke demo and MCP stdio
         run: ./scripts/smoke-demo.sh
 
+      - name: Smoke MCP HTTP
+        run: ./scripts/smoke-mcp-http.sh
+
   release-smoke:
     name: Release smoke
     runs-on: ubuntu-latest

@@ -20,6 +20,7 @@ REQUIRED_SNIPPETS = {
     "demo formatting": "./gradlew --no-daemon -p demo spotlessCheck",
     "root build": "./gradlew --no-daemon clean build",
     "demo smoke": "./scripts/smoke-demo.sh",
+    "http mcp smoke": "./scripts/smoke-mcp-http.sh",
     "mcp smoke coverage verifier": "./scripts/verify-mcp-smoke-coverage.py",
     "release smoke job": "release-smoke:",
     "release smoke tag guard": "startsWith(github.ref, 'refs/tags/v')",

@@ -164,6 +164,14 @@ Run the MCP stdio server smoke directly:
 
 That command starts the installed MCP server process, sends JSON-RPC over stdio, calls `search_composables`, and reads `compose-expose://modules`.
 
+Run the MCP HTTP server smoke directly after indexing the demo:
+
+```bash
+./scripts/smoke-mcp-http.sh
+```
+
+That command starts the installed MCP server process with `--transport http`, sends JSON-RPC over Streamable HTTP, calls `search_composables`, validates `get_composable`, checks `index_status`, and reads `compose-expose://modules`.
+
 Build the demo APK:
 
 ```bash
