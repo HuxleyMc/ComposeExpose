@@ -205,6 +205,40 @@ class ComposeExposeServiceTest {
         }
 
     @Test
+    fun `list previews applies bounded deterministic limit`() =
+        runTest {
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        extraDeclarations =
+                            listOf(
+                                sampleComposable(
+                                    name = "AlphaPreviewHost",
+                                    source = "app/src/main/kotlin/dev/example/AlphaPreviewHost.kt",
+                                    previews = listOf(PreviewDeclaration("Preview", "Alpha", "cards", emptyMap())),
+                                ),
+                                sampleComposable(
+                                    name = "BetaPreviewHost",
+                                    source = "app/src/main/kotlin/dev/example/BetaPreviewHost.kt",
+                                    previews = listOf(PreviewDeclaration("Preview", "Beta", "cards", emptyMap())),
+                                ),
+                                sampleComposable(
+                                    name = "GammaPreviewHost",
+                                    source = "app/src/main/kotlin/dev/example/GammaPreviewHost.kt",
+                                    previews = listOf(PreviewDeclaration("Preview", "Gamma", "cards", emptyMap())),
+                                ),
+                            ),
+                    ),
+                )
+            val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+
+            assertEquals(
+                listOf("AccountCard", "AlphaPreviewHost"),
+                service.listPreviews(limit = 2).map { it.composableName },
+            )
+        }
+
+    @Test
     fun `module summaries include counts packages previews and source sets`() =
         runTest {
             val indexFile =

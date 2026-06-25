@@ -116,6 +116,7 @@ class ComposeExposeMcpProtocolTest {
                 assertEquals("string", schemaPropertyType(previewsInputProperties, "module"))
                 assertEquals("string", schemaPropertyType(previewsInputProperties, "sourceSet"))
                 assertEquals("string", schemaPropertyType(previewsInputProperties, "annotation"))
+                assertEquals("integer", schemaPropertyType(previewsInputProperties, "limit"))
 
                 val result = client.callTool("search_composables", mapOf("query" to "AccountCard", "limit" to 1))
 

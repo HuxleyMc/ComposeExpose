@@ -220,6 +220,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                         put("module", stringSchema("Optional Gradle module path filter, for example :app."))
                         put("sourceSet", stringSchema("Optional source set filter, for example main, debug, free, or paid."))
                         put("annotation", stringSchema("Optional preview annotation filter, for example Preview or TabletPreviews."))
+                        put("limit", integerSchema("Maximum previews to return.", minimum = 1, maximum = 100))
                     },
             ),
         outputSchema =
@@ -238,6 +239,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                 module = args.optionalString("list_previews", "module"),
                 sourceSet = args.optionalString("list_previews", "sourceSet"),
                 annotation = args.optionalString("list_previews", "annotation"),
+                limit = args.optionalInt("list_previews", "limit") ?: 20,
             )
         }
     }

@@ -108,6 +108,7 @@ class ComposeExposeService(
         module: String? = null,
         sourceSet: String? = null,
         annotation: String? = null,
+        limit: Int = DEFAULT_SEARCH_LIMIT,
     ): List<PreviewSearchResult> =
         loadIndex()
             .composables
@@ -121,6 +122,7 @@ class ComposeExposeService(
             }.filter { group == null || it.preview.group == group }
             .filter { annotation == null || it.preview.annotation == annotation }
             .sortedWith(compareBy<PreviewSearchResult> { it.composableName }.thenBy { it.preview.name.orEmpty() })
+            .take(limit.coerceIn(1, MAX_SEARCH_LIMIT))
             .toList()
 
     fun moduleSummaries(): ModuleSummaryResource {
