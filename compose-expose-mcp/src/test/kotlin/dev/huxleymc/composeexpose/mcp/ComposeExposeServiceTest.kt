@@ -70,6 +70,44 @@ class ComposeExposeServiceTest {
         }
 
     @Test
+    fun `search matches parameters annotations and preview metadata`() =
+        runTest {
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        extraDeclarations =
+                            listOf(
+                                sampleComposable(
+                                    name = "ActionPanel",
+                                    source = "app/src/main/kotlin/dev/example/ActionPanel.kt",
+                                    parameters =
+                                        listOf(
+                                            ComposableParameter("onRetry", "() -> Unit", hasDefault = false),
+                                            ComposableParameter("state", "PanelState", hasDefault = true),
+                                        ),
+                                    previews =
+                                        listOf(
+                                            PreviewDeclaration(
+                                                annotation = "TabletPreviews",
+                                                name = "Retry",
+                                                group = "workflow",
+                                                arguments = mapOf("widthDp" to "840"),
+                                            ),
+                                        ),
+                                    annotations = listOf("@Composable", "@TabletPreviews"),
+                                ),
+                            ),
+                    ),
+                )
+            val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+
+            assertEquals(listOf("ActionPanel"), service.searchComposables(query = "onRetry").map { it.name })
+            assertEquals(listOf("ActionPanel"), service.searchComposables(query = "PanelState").map { it.name })
+            assertEquals(listOf("ActionPanel"), service.searchComposables(query = "workflow").map { it.name })
+            assertEquals(listOf("ActionPanel"), service.searchComposables(query = "TabletPreviews").map { it.name })
+        }
+
+    @Test
     fun `module summaries include counts packages previews and source sets`() =
         runTest {
             val indexFile =
@@ -434,6 +472,9 @@ class ComposeExposeServiceTest {
         sourceSet: String = "main",
         packageName: String = "dev.example",
         kdocBody: String? = null,
+        parameters: List<ComposableParameter> = emptyList(),
+        annotations: List<String> = listOf("@Composable"),
+        previews: List<PreviewDeclaration> = emptyList(),
     ): ComposableDeclaration =
         ComposableDeclaration(
             id = "$module:$sourceSet:$packageName.$name#",
@@ -444,8 +485,8 @@ class ComposeExposeServiceTest {
             visibility = "public",
             source = SourceLocation(source, 4, 1),
             kdoc = kdocBody?.let { Kdoc(it.lineSequence().first(), it) },
-            parameters = emptyList(),
-            annotations = listOf("@Composable"),
-            previews = emptyList(),
+            parameters = parameters,
+            annotations = annotations,
+            previews = previews,
         )
 }

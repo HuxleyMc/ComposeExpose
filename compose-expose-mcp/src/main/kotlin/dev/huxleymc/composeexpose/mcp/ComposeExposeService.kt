@@ -297,6 +297,22 @@ class ComposeExposeService(
         val name = name.lowercase()
         val packageName = packageName.lowercase()
         val kdocBody = kdoc?.body?.lowercase().orEmpty()
+        val parameterText =
+            parameters
+                .joinToString(" ") { "${it.name} ${it.type}" }
+                .lowercase()
+        val annotationText = annotations.joinToString(" ").lowercase()
+        val previewText =
+            previews
+                .joinToString(" ") { preview ->
+                    buildList {
+                        add(preview.annotation)
+                        preview.name?.let(::add)
+                        preview.group?.let(::add)
+                        addAll(preview.arguments.keys)
+                        addAll(preview.arguments.values)
+                    }.joinToString(" ")
+                }.lowercase()
         val score =
             when {
                 name == query -> 0
@@ -304,6 +320,9 @@ class ComposeExposeService(
                 name.contains(query) -> 20
                 packageName.contains(query) -> 30
                 kdocBody.contains(query) -> 40
+                parameterText.contains(query) -> 50
+                annotationText.contains(query) -> 60
+                previewText.contains(query) -> 70
                 else -> return null
             }
         return SearchMatch(this, score)

@@ -114,7 +114,7 @@ Tools:
 - `refresh_index(module)`
 - `index_status()`
 
-`search_composables` ranks exact name matches first, then prefix, substring, package, and KDoc matches. Results default to 20 items and are capped at 100 to keep agent context bounded.
+`search_composables` ranks exact name matches first, then prefix, substring, package, KDoc, parameter, annotation, and preview metadata matches. Results default to 20 items and are capped at 100 to keep agent context bounded.
 
 Malformed tool arguments are returned as MCP tool errors with stable validation messages, so clients can fix the request and continue using the same session.
 
