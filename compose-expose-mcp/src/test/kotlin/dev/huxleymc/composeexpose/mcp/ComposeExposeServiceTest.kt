@@ -228,6 +228,33 @@ class ComposeExposeServiceTest {
         }
 
     @Test
+    fun `status reports index age in milliseconds`() =
+        runTest {
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        metadata =
+                            IndexMetadata(
+                                generatedAtEpochMillis = 1_000L,
+                                projectRoot = tempDir.toString(),
+                                modules = listOf(":app"),
+                                sourceRoots = emptyList(),
+                            ),
+                    ),
+                )
+            val service =
+                ComposeExposeService(
+                    projectRoot = tempDir,
+                    indexFile = indexFile,
+                    currentTimeMillis = { 2_500L },
+                )
+
+            val status = service.indexStatus()
+
+            assertEquals(1_500L, status.ageMillis)
+        }
+
+    @Test
     fun `status reports stale external source roots without crashing`() =
         runTest {
             val projectRoot = tempDir.resolve("project").createDirectories()

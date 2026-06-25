@@ -44,6 +44,7 @@ data class IndexStatus(
     val exists: Boolean,
     val isStale: Boolean,
     val generatedAtEpochMillis: Long?,
+    val ageMillis: Long?,
     val modules: List<String>,
     val sourceRoots: List<String>,
     val newerSources: List<String>,
@@ -68,6 +69,7 @@ class ComposeExposeService(
     private val projectRoot: Path,
     private val indexFile: Path = projectRoot.resolve("build/composeExpose/all-composables.json"),
     private val gradleRunner: suspend (List<String>) -> RefreshExecution = { args -> runGradle(projectRoot, args) },
+    private val currentTimeMillis: () -> Long = { System.currentTimeMillis() },
 ) {
     private val refreshInProgress = AtomicBoolean(false)
 
@@ -138,6 +140,7 @@ class ComposeExposeService(
                 exists = false,
                 isStale = true,
                 generatedAtEpochMillis = null,
+                ageMillis = null,
                 modules = emptyList(),
                 sourceRoots = emptyList(),
                 newerSources = emptyList(),
@@ -150,6 +153,7 @@ class ComposeExposeService(
                 exists = true,
                 isStale = true,
                 generatedAtEpochMillis = null,
+                ageMillis = null,
                 modules = emptyList(),
                 sourceRoots = emptyList(),
                 newerSources = emptyList(),
@@ -163,6 +167,7 @@ class ComposeExposeService(
             exists = true,
             isStale = newerSources.isNotEmpty(),
             generatedAtEpochMillis = index.metadata.generatedAtEpochMillis,
+            ageMillis = indexAgeMillis(index.metadata.generatedAtEpochMillis),
             modules = index.metadata.modules,
             sourceRoots = index.metadata.sourceRoots,
             newerSources = newerSources,
@@ -233,6 +238,8 @@ class ComposeExposeService(
                 ),
             composables = emptyList(),
         )
+
+    private fun indexAgeMillis(generatedAtEpochMillis: Long): Long = (currentTimeMillis() - generatedAtEpochMillis).coerceAtLeast(0L)
 
     private suspend fun runRefreshTasks(module: String?): List<GradleInvocation> {
         val tasks =

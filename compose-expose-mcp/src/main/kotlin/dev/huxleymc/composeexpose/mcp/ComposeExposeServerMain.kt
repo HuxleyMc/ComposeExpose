@@ -469,6 +469,7 @@ private fun indexStatusSchema(): JsonObject =
                 "exists",
                 "isStale",
                 "generatedAtEpochMillis",
+                "ageMillis",
                 "modules",
                 "sourceRoots",
                 "newerSources",
@@ -479,6 +480,7 @@ private fun indexStatusSchema(): JsonObject =
                 put("exists", booleanSchema("Whether the aggregate index file exists."))
                 put("isStale", booleanSchema("Whether sources are newer than the index or the index cannot be read."))
                 put("generatedAtEpochMillis", nullableLongSchema("Index generation timestamp, or null when unavailable."))
+                put("ageMillis", nullableLongSchema("Milliseconds since index generation, or null when unavailable."))
                 put("modules", stringArraySchema("Indexed Gradle module paths."))
                 put("sourceRoots", stringArraySchema("Source roots scanned for staleness checks."))
                 put("newerSources", stringArraySchema("Known Kotlin source files newer than the index."))

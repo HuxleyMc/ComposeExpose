@@ -98,6 +98,7 @@ class ComposeExposeMcpProtocolTest {
                 val statusProperties = toolResultProperties(tools.tools, "index_status", "status")
                 assertEquals("boolean", schemaPropertyType(statusProperties, "exists"))
                 assertEquals("boolean", schemaPropertyType(statusProperties, "isStale"))
+                assertEquals(listOf("integer", "null"), anyOfSchemaPropertyTypes(statusProperties, "ageMillis"))
                 assertEquals("array", schemaPropertyType(statusProperties, "newerSources"))
                 assertEquals("string", arrayItemSchemaType(statusProperties, "newerSources"))
                 assertEquals("boolean", schemaPropertyType(statusProperties, "refreshInProgress"))
@@ -200,6 +201,20 @@ class ComposeExposeMcpProtocolTest {
             ?.get("type")
             ?.jsonPrimitive
             ?.content
+
+    private fun anyOfSchemaPropertyTypes(
+        properties: kotlinx.serialization.json.JsonObject,
+        name: String,
+    ): List<String> =
+        properties[name]
+            ?.jsonObject
+            ?.get("anyOf")
+            ?.jsonArray
+            ?.mapNotNull { schema ->
+                schema.jsonObject["type"]
+                    ?.jsonPrimitive
+                    ?.content
+            }.orEmpty()
 
     private fun nestedArrayItemSchemaPropertyType(
         properties: kotlinx.serialization.json.JsonObject,

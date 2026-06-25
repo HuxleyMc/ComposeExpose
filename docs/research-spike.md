@@ -12,7 +12,7 @@
 Agents should treat the generated index as a fast cache.
 
 - Normal reads use `composables.json`.
-- `index_status()` compares Kotlin source mtimes against `generatedAtEpochMillis`.
+- `index_status()` reports index age and compares Kotlin source mtimes against `generatedAtEpochMillis`.
 - If stale, call `refresh_index()`. With a module argument, the MCP first runs `./gradlew <module>:composeExposeIndex` and then refreshes the aggregate index it serves.
 - The spike does not run Gradle on every query.
 
