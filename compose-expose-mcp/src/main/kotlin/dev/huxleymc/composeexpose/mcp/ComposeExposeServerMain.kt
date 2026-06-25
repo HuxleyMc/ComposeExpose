@@ -22,10 +22,11 @@ import kotlinx.io.asSink
 import kotlinx.io.buffered
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.nio.file.Path
 
@@ -140,15 +141,17 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                     },
             ),
     ) { request ->
-        val args = request.arguments
-        val result =
-            service.searchComposables(
-                query = args?.get("query")?.jsonPrimitive?.contentOrNull,
-                module = args?.get("module")?.jsonPrimitive?.contentOrNull,
-                sourceSet = args?.get("sourceSet")?.jsonPrimitive?.contentOrNull,
-                limit = args?.get("limit")?.jsonPrimitive?.intOrNull ?: 20,
-            )
-        CallToolResult(content = listOf(TextContent(json.encodeToString(result))))
+        toolResult {
+            val args = request.arguments
+            val result =
+                service.searchComposables(
+                    query = args.optionalString("search_composables", "query"),
+                    module = args.optionalString("search_composables", "module"),
+                    sourceSet = args.optionalString("search_composables", "sourceSet"),
+                    limit = args.optionalInt("search_composables", "limit") ?: 20,
+                )
+            json.encodeToString(result)
+        }
     }
 
     server.addTool(
@@ -163,13 +166,10 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                     },
             ),
     ) { request ->
-        val id =
-            request.arguments
-                ?.get("id")
-                ?.jsonPrimitive
-                ?.contentOrNull
-                .orEmpty()
-        CallToolResult(content = listOf(TextContent(json.encodeToString(service.getComposable(id)))))
+        toolResult {
+            val id = request.arguments.requiredString("get_composable", "id")
+            json.encodeToString(service.getComposable(id))
+        }
     }
 
     server.addTool(
@@ -183,12 +183,10 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                     },
             ),
     ) { request ->
-        val group =
-            request.arguments
-                ?.get("group")
-                ?.jsonPrimitive
-                ?.contentOrNull
-        CallToolResult(content = listOf(TextContent(json.encodeToString(service.listPreviews(group)))))
+        toolResult {
+            val group = request.arguments.optionalString("list_previews", "group")
+            json.encodeToString(service.listPreviews(group))
+        }
     }
 
     server.addTool(
@@ -202,13 +200,11 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                     },
             ),
     ) { request ->
-        val module =
-            request.arguments
-                ?.get("module")
-                ?.jsonPrimitive
-                ?.contentOrNull
-        val result = runBlocking { service.refreshIndex(module) }
-        CallToolResult(content = listOf(TextContent(json.encodeToString(result))))
+        toolResult {
+            val module = request.arguments.optionalString("refresh_index", "module")
+            val result = runBlocking { service.refreshIndex(module) }
+            json.encodeToString(result)
+        }
     }
 
     server.addTool(
@@ -220,3 +216,50 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
 
     return server
 }
+
+private fun toolResult(block: () -> String): CallToolResult =
+    try {
+        CallToolResult(content = listOf(TextContent(block())))
+    } catch (error: ToolArgumentException) {
+        CallToolResult(content = listOf(TextContent(error.message.orEmpty())), isError = true)
+    }
+
+private fun JsonObject?.optionalString(
+    toolName: String,
+    argumentName: String,
+): String? {
+    val value = this?.get(argumentName) ?: return null
+    val primitive =
+        value as? JsonPrimitive
+            ?: throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected string")
+    if (!primitive.isString && primitive.contentOrNull != null) {
+        throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected string")
+    }
+    return primitive.contentOrNull
+}
+
+private fun JsonObject?.requiredString(
+    toolName: String,
+    argumentName: String,
+): String =
+    optionalString(toolName, argumentName)
+        ?: throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected string")
+
+private fun JsonObject?.optionalInt(
+    toolName: String,
+    argumentName: String,
+): Int? {
+    val value = this?.get(argumentName) ?: return null
+    val primitive =
+        value as? JsonPrimitive
+            ?: throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected integer")
+    if (primitive.isString) {
+        throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected integer")
+    }
+    return primitive.intOrNull
+        ?: throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected integer")
+}
+
+private class ToolArgumentException(
+    message: String,
+) : IllegalArgumentException(message)

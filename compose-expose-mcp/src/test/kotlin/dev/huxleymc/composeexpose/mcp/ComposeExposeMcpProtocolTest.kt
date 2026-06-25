@@ -73,6 +73,46 @@ class ComposeExposeMcpProtocolTest {
             }
         }
 
+    @Test
+    fun `malformed tool arguments return deterministic tool error without closing session`() =
+        runTest {
+            val indexFile = tempDir.resolve("build/composeExpose/all-composables.json")
+            indexFile.parent.createDirectories()
+            indexFile.writeText(ComposableIndexJson.encode(sampleIndex()))
+
+            val server = buildComposeExposeMcpServer(ComposeExposeService(tempDir, indexFile))
+            val client = Client(clientInfo = Implementation(name = "test-client", version = "1.0"))
+            val (clientTransport, serverTransport) = ChannelTransport.createLinkedPair()
+            val serverSession = CompletableDeferred<ServerSession>()
+
+            try {
+                val clientJob = launch { client.connect(clientTransport) }
+                val serverJob = launch { serverSession.complete(server.createSession(serverTransport)) }
+                clientJob.join()
+                serverJob.join()
+
+                val result =
+                    client.callTool(
+                        "search_composables",
+                        mapOf("query" to mapOf("nested" to "value"), "limit" to 1),
+                    )
+
+                assertEquals(true, result.isError)
+                val text = (result.content.firstOrNull() as? TextContent)?.text
+                assertNotNull(text)
+                assertTrue(text.contains("Invalid search_composables argument 'query': expected string"))
+
+                val status = client.callTool("index_status", emptyMap())
+                assertEquals(null, status.isError)
+                val statusText = (status.content.firstOrNull() as? TextContent)?.text
+                assertNotNull(statusText)
+                assertTrue(statusText.contains("\"exists\""))
+            } finally {
+                client.close()
+                server.close()
+            }
+        }
+
     private fun sampleIndex(): ComposableIndex =
         ComposableIndex(
             metadata =
