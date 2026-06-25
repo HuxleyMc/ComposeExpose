@@ -275,6 +275,18 @@ class ComposeExposeMcpProtocolTest {
                 assertNotNull(text)
                 assertTrue(text.contains("Invalid search_composables argument 'query': expected string"))
 
+                val lowSearchLimit = client.callTool("search_composables", mapOf("query" to "AccountCard", "limit" to 0))
+                assertEquals(true, lowSearchLimit.isError)
+                val lowSearchLimitText = (lowSearchLimit.content.firstOrNull() as? TextContent)?.text
+                assertNotNull(lowSearchLimitText)
+                assertTrue(lowSearchLimitText.contains("Invalid search_composables argument 'limit': expected integer from 1 to 100"))
+
+                val lowPreviewLimit = client.callTool("list_previews", mapOf("limit" to 0))
+                assertEquals(true, lowPreviewLimit.isError)
+                val lowPreviewLimitText = (lowPreviewLimit.content.firstOrNull() as? TextContent)?.text
+                assertNotNull(lowPreviewLimitText)
+                assertTrue(lowPreviewLimitText.contains("Invalid list_previews argument 'limit': expected integer from 1 to 100"))
+
                 val status = client.callTool("index_status", emptyMap())
                 assertEquals(null, status.isError)
                 val statusText = (status.content.firstOrNull() as? TextContent)?.text

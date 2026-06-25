@@ -178,7 +178,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                 sourceSet = args.optionalString("search_composables", "sourceSet"),
                 visibility = args.optionalString("search_composables", "visibility"),
                 hasPreview = args.optionalBoolean("search_composables", "hasPreview"),
-                limit = args.optionalInt("search_composables", "limit") ?: 20,
+                limit = args.optionalInt("search_composables", "limit", minimum = 1, maximum = 100) ?: 20,
             )
         }
     }
@@ -239,7 +239,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                 module = args.optionalString("list_previews", "module"),
                 sourceSet = args.optionalString("list_previews", "sourceSet"),
                 annotation = args.optionalString("list_previews", "annotation"),
-                limit = args.optionalInt("list_previews", "limit") ?: 20,
+                limit = args.optionalInt("list_previews", "limit", minimum = 1, maximum = 100) ?: 20,
             )
         }
     }
@@ -575,6 +575,8 @@ private fun JsonObject?.requiredString(
 private fun JsonObject?.optionalInt(
     toolName: String,
     argumentName: String,
+    minimum: Int? = null,
+    maximum: Int? = null,
 ): Int? {
     val value = this?.get(argumentName) ?: return null
     val primitive =
@@ -583,8 +585,13 @@ private fun JsonObject?.optionalInt(
     if (primitive.isString) {
         throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected integer")
     }
-    return primitive.intOrNull
-        ?: throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected integer")
+    val intValue =
+        primitive.intOrNull
+            ?: throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected integer")
+    if ((minimum != null && intValue < minimum) || (maximum != null && intValue > maximum)) {
+        throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected integer from $minimum to $maximum")
+    }
+    return intValue
 }
 
 private fun JsonObject?.optionalBoolean(
