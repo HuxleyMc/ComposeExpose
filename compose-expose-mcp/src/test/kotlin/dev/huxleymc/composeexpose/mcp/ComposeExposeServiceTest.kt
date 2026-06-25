@@ -8,6 +8,8 @@ import dev.huxleymc.composeexpose.core.IndexMetadata
 import dev.huxleymc.composeexpose.core.Kdoc
 import dev.huxleymc.composeexpose.core.PreviewDeclaration
 import dev.huxleymc.composeexpose.core.SourceLocation
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
@@ -262,6 +264,41 @@ class ComposeExposeServiceTest {
             assertFalse(result.success)
             assertFalse(invoked)
             assertTrue(result.output.contains("Invalid Gradle module path"))
+        }
+
+    @Test
+    fun `refresh rejects concurrent requests without launching another gradle process`() =
+        runTest {
+            val indexFile = writeIndex(sampleIndex())
+            val firstRefreshStarted = CompletableDeferred<Unit>()
+            val releaseFirstRefresh = CompletableDeferred<Unit>()
+            var invocationCount = 0
+            val service =
+                ComposeExposeService(
+                    projectRoot = tempDir,
+                    indexFile = indexFile,
+                    gradleRunner = {
+                        invocationCount += 1
+                        firstRefreshStarted.complete(Unit)
+                        releaseFirstRefresh.await()
+                        RefreshExecution(exitCode = 0, output = "indexed")
+                    },
+                )
+
+            val firstRefresh = async { service.refreshIndex() }
+            firstRefreshStarted.await()
+
+            val secondRefresh = service.refreshIndex()
+
+            assertFalse(secondRefresh.success)
+            assertTrue(secondRefresh.output.contains("already in progress"))
+            assertTrue(secondRefresh.status.refreshInProgress)
+            assertEquals(1, invocationCount)
+
+            releaseFirstRefresh.complete(Unit)
+            assertTrue(firstRefresh.await().success)
+            assertFalse(service.indexStatus().refreshInProgress)
+            assertEquals(1, invocationCount)
         }
 
     private fun writeIndex(index: ComposableIndex): Path {

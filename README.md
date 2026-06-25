@@ -114,7 +114,7 @@ Tools:
 
 `search_composables` ranks exact name matches first, then prefix, substring, package, and KDoc matches. Results default to 20 items and are capped at 100 to keep agent context bounded.
 
-`refresh_index` returns a structured success flag, Gradle output, and a fresh `index_status` snapshot. Without a module argument it runs `composeExposeAggregateIndex`. With a module argument it runs `<module>:composeExposeIndex` and then `composeExposeAggregateIndex`, so the aggregate index served by MCP is refreshed before clients query again. Invalid module paths and Gradle launch failures are returned as `success: false` results so MCP clients can recover without treating the server session as failed.
+`refresh_index` returns a structured success flag, Gradle output, and a fresh `index_status` snapshot. Without a module argument it runs `composeExposeAggregateIndex`. With a module argument it runs `<module>:composeExposeIndex` and then `composeExposeAggregateIndex`, so the aggregate index served by MCP is refreshed before clients query again. Invalid module paths, concurrent refresh requests, and Gradle launch failures are returned as `success: false` results so MCP clients can recover without treating the server session as failed.
 
 The MCP can start before an index has been generated. In that state query tools return empty results, `compose-expose://modules` returns an empty summary, and `index_status()` reports `exists: false` and `isStale: true`; clients should call `refresh_index()` before retrying discovery.
 

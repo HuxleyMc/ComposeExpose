@@ -10,6 +10,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.getLastModifiedTime
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.readText
@@ -67,8 +68,7 @@ class ComposeExposeService(
     private val indexFile: Path = projectRoot.resolve("build/composeExpose/all-composables.json"),
     private val gradleRunner: suspend (List<String>) -> RefreshExecution = { args -> runGradle(projectRoot, args) },
 ) {
-    @Volatile
-    private var refreshInProgress = false
+    private val refreshInProgress = AtomicBoolean(false)
 
     fun searchComposables(
         query: String? = null,
@@ -127,7 +127,7 @@ class ComposeExposeService(
         )
     }
 
-    fun indexStatus(): IndexStatus = buildIndexStatus(refreshInProgress)
+    fun indexStatus(): IndexStatus = buildIndexStatus(refreshInProgress.get())
 
     private fun buildIndexStatus(refreshing: Boolean): IndexStatus {
         if (!Files.exists(indexFile)) {
@@ -162,7 +162,13 @@ class ComposeExposeService(
                 status = indexStatus(),
             )
         }
-        refreshInProgress = true
+        if (!refreshInProgress.compareAndSet(false, true)) {
+            return RefreshResult(
+                success = false,
+                output = "ComposeExpose index refresh is already in progress.",
+                status = buildIndexStatus(refreshing = true),
+            )
+        }
         val result =
             try {
                 val executions = runRefreshTasks(module)
@@ -181,7 +187,7 @@ class ComposeExposeService(
                     status = buildIndexStatus(refreshing = false),
                 )
             } finally {
-                refreshInProgress = false
+                refreshInProgress.set(false)
             }
         return result
     }
