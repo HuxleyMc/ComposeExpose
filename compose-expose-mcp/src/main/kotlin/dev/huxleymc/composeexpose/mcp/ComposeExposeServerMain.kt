@@ -24,6 +24,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.encodeToJsonElement
@@ -144,7 +145,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                         put("limit", integerSchema("Maximum results to return.", minimum = 1, maximum = 100))
                     },
             ),
-        outputSchema = toolOutputSchema("results", arraySchema("Matched composable declarations.")),
+        outputSchema = toolOutputSchema("results", arraySchema("Matched composable declarations.", composableSchema())),
     ) { request ->
         toolResult(json, "results") {
             val args = request.arguments
@@ -171,7 +172,10 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
         outputSchema =
             toolOutputSchema(
                 "composable",
-                nullableObjectSchema("Matched composable declaration, or null when the id is unknown."),
+                nullableSchema(
+                    "Matched composable declaration, or null when the id is unknown.",
+                    composableSchema(),
+                ),
             ),
     ) { request ->
         toolResult(json, "composable") {
@@ -190,7 +194,14 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                         put("group", stringSchema("Optional Compose preview group filter."))
                     },
             ),
-        outputSchema = toolOutputSchema("previews", arraySchema("Indexed Compose preview declarations with their parent composable ids.")),
+        outputSchema =
+            toolOutputSchema(
+                "previews",
+                arraySchema(
+                    "Indexed Compose preview declarations with their parent composable ids.",
+                    previewSearchResultSchema(),
+                ),
+            ),
     ) { request ->
         toolResult(json, "previews") {
             val group = request.arguments.optionalString("list_previews", "group")
@@ -263,31 +274,53 @@ private fun integerSchema(
         put("maximum", maximum)
     }
 
-private fun arraySchema(description: String): JsonObject =
+private fun arraySchema(
+    description: String,
+    itemSchema: JsonObject = objectSchema("Array item."),
+): JsonObject =
     buildJsonObject {
         put("type", "array")
         put("description", description)
-        put(
-            "items",
-            buildJsonObject {
-                put("type", "object")
-            },
-        )
+        put("items", itemSchema)
     }
 
-private fun objectSchema(description: String): JsonObject =
+private fun objectSchema(
+    description: String,
+    required: List<String> = emptyList(),
+    properties: JsonObject = buildJsonObject {},
+): JsonObject =
     buildJsonObject {
         put("type", "object")
         put("description", description)
+        put("properties", properties)
+        if (required.isNotEmpty()) {
+            put(
+                "required",
+                buildJsonArray {
+                    required.forEach { add(JsonPrimitive(it)) }
+                },
+            )
+        }
     }
 
-private fun nullableObjectSchema(description: String): JsonObject =
+private fun booleanSchema(description: String): JsonObject =
+    buildJsonObject {
+        put("type", "boolean")
+        put("description", description)
+    }
+
+private fun nullableStringSchema(description: String): JsonObject = nullableSchema(description, stringSchema(description))
+
+private fun nullableSchema(
+    description: String,
+    schema: JsonObject,
+): JsonObject =
     buildJsonObject {
         put("description", description)
         put(
             "anyOf",
-            kotlinx.serialization.json.buildJsonArray {
-                add(objectSchema("Composable declaration."))
+            buildJsonArray {
+                add(schema)
                 add(
                     buildJsonObject {
                         put("type", "null")
@@ -296,6 +329,108 @@ private fun nullableObjectSchema(description: String): JsonObject =
             },
         )
     }
+
+private fun stringArraySchema(description: String): JsonObject = arraySchema(description, stringSchema("String value."))
+
+private fun stringMapSchema(description: String): JsonObject =
+    objectSchema(description).let { baseSchema ->
+        buildJsonObject {
+            baseSchema.forEach { (key, value) -> put(key, value) }
+            put("additionalProperties", stringSchema("Argument value."))
+        }
+    }
+
+private fun sourceLocationSchema(): JsonObject =
+    objectSchema(
+        description = "Source file location for the composable declaration.",
+        required = listOf("file", "line", "column"),
+        properties =
+            buildJsonObject {
+                put("file", stringSchema("Project-relative or absolute source file path."))
+                put("line", integerSchema("One-based source line.", minimum = 1, maximum = Int.MAX_VALUE))
+                put("column", integerSchema("One-based source column.", minimum = 1, maximum = Int.MAX_VALUE))
+            },
+    )
+
+private fun kdocSchema(): JsonObject =
+    objectSchema(
+        description = "Parsed KDoc summary and body.",
+        required = listOf("summary", "body"),
+        properties =
+            buildJsonObject {
+                put("summary", stringSchema("First KDoc sentence or paragraph."))
+                put("body", stringSchema("Full KDoc body text."))
+            },
+    )
+
+private fun parameterSchema(): JsonObject =
+    objectSchema(
+        description = "Composable parameter declaration.",
+        required = listOf("name", "type", "hasDefault"),
+        properties =
+            buildJsonObject {
+                put("name", stringSchema("Parameter name."))
+                put("type", stringSchema("Kotlin parameter type text."))
+                put("hasDefault", booleanSchema("Whether the parameter declares a default value."))
+            },
+    )
+
+private fun previewSchema(): JsonObject =
+    objectSchema(
+        description = "Compose Preview or multipreview annotation metadata.",
+        required = listOf("annotation", "arguments"),
+        properties =
+            buildJsonObject {
+                put("annotation", stringSchema("Preview annotation simple or qualified name."))
+                put("name", nullableStringSchema("Preview display name, when present."))
+                put("group", nullableStringSchema("Preview group, when present."))
+                put("arguments", stringMapSchema("Preview annotation argument values."))
+            },
+    )
+
+private fun composableSchema(): JsonObject =
+    objectSchema(
+        description = "Indexed Jetpack Compose composable declaration.",
+        required =
+            listOf(
+                "id",
+                "module",
+                "sourceSet",
+                "packageName",
+                "name",
+                "visibility",
+                "source",
+                "parameters",
+                "annotations",
+                "previews",
+            ),
+        properties =
+            buildJsonObject {
+                put("id", stringSchema("Stable composable id."))
+                put("module", stringSchema("Gradle module path."))
+                put("sourceSet", stringSchema("Android or Kotlin source set."))
+                put("packageName", stringSchema("Kotlin package name."))
+                put("name", stringSchema("Composable function name."))
+                put("visibility", stringSchema("Kotlin visibility."))
+                put("source", sourceLocationSchema())
+                put("kdoc", nullableSchema("KDoc metadata, or null when absent.", kdocSchema()))
+                put("parameters", arraySchema("Composable parameters.", parameterSchema()))
+                put("annotations", stringArraySchema("Function annotations."))
+                put("previews", arraySchema("Preview annotations attached to the composable.", previewSchema()))
+            },
+    )
+
+private fun previewSearchResultSchema(): JsonObject =
+    objectSchema(
+        description = "Preview search result with parent composable metadata.",
+        required = listOf("composableId", "composableName", "preview"),
+        properties =
+            buildJsonObject {
+                put("composableId", stringSchema("Stable composable id that owns the preview."))
+                put("composableName", stringSchema("Composable function name that owns the preview."))
+                put("preview", previewSchema())
+            },
+    )
 
 private inline fun <reified T> toolResult(
     json: Json,

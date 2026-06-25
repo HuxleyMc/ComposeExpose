@@ -64,6 +64,30 @@ class ComposeExposeMcpProtocolTest {
                         ?.jsonPrimitive
                         ?.content,
                 )
+                val resultItemProperties =
+                    assertNotNull(
+                        searchOutputProperties["results"]
+                            ?.jsonObject
+                            ?.get("items")
+                            ?.jsonObject
+                            ?.get("properties")
+                            ?.jsonObject,
+                    )
+                assertEquals("string", schemaPropertyType(resultItemProperties, "id"))
+                assertEquals("string", schemaPropertyType(resultItemProperties, "name"))
+                assertEquals("object", schemaPropertyType(resultItemProperties, "source"))
+                assertEquals(
+                    "string",
+                    nestedSchemaPropertyType(resultItemProperties, "source", "file"),
+                )
+                assertEquals(
+                    "boolean",
+                    nestedArrayItemSchemaPropertyType(resultItemProperties, "parameters", "hasDefault"),
+                )
+                assertEquals(
+                    "string",
+                    nestedArrayItemSchemaPropertyType(resultItemProperties, "previews", "annotation"),
+                )
 
                 val result = client.callTool("search_composables", mapOf("query" to "AccountCard", "limit" to 1))
 
@@ -96,6 +120,40 @@ class ComposeExposeMcpProtocolTest {
                 server.close()
             }
         }
+
+    private fun schemaPropertyType(
+        properties: kotlinx.serialization.json.JsonObject,
+        name: String,
+    ): String? =
+        properties[name]
+            ?.jsonObject
+            ?.get("type")
+            ?.jsonPrimitive
+            ?.content
+
+    private fun nestedSchemaPropertyType(
+        properties: kotlinx.serialization.json.JsonObject,
+        name: String,
+        nestedName: String,
+    ): String? =
+        properties[name]
+            ?.jsonObject
+            ?.get("properties")
+            ?.jsonObject
+            ?.let { nestedProperties -> schemaPropertyType(nestedProperties, nestedName) }
+
+    private fun nestedArrayItemSchemaPropertyType(
+        properties: kotlinx.serialization.json.JsonObject,
+        name: String,
+        nestedName: String,
+    ): String? =
+        properties[name]
+            ?.jsonObject
+            ?.get("items")
+            ?.jsonObject
+            ?.get("properties")
+            ?.jsonObject
+            ?.let { nestedProperties -> schemaPropertyType(nestedProperties, nestedName) }
 
     @Test
     fun `malformed tool arguments return deterministic tool error without closing session`() =

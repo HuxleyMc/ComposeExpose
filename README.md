@@ -118,7 +118,7 @@ Tools:
 
 Tool responses keep JSON text content for compatibility and also include MCP `structuredContent` wrappers for clients that can consume typed results directly: `results`, `composable`, `previews`, `result`, and `status`.
 
-`tools/list` includes input property metadata and output schemas for those structured wrappers so clients can plan calls without sampling each tool first.
+`tools/list` includes input property metadata and field-level output schemas for those structured wrappers so clients can plan calls without sampling each tool first.
 
 Malformed tool arguments are returned as MCP tool errors with stable validation messages, so clients can fix the request and continue using the same session.
 
