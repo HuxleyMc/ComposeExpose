@@ -112,6 +112,11 @@ class ComposeExposeMcpProtocolTest {
                 assertEquals("object", schemaPropertyType(refreshProperties, "status"))
                 assertEquals("boolean", nestedSchemaPropertyType(refreshProperties, "status", "exists"))
 
+                val previewsInputProperties = toolInputProperties(tools.tools, "list_previews")
+                assertEquals("string", schemaPropertyType(previewsInputProperties, "module"))
+                assertEquals("string", schemaPropertyType(previewsInputProperties, "sourceSet"))
+                assertEquals("string", schemaPropertyType(previewsInputProperties, "annotation"))
+
                 val result = client.callTool("search_composables", mapOf("query" to "AccountCard", "limit" to 1))
 
                 val text = (result.content.firstOrNull() as? TextContent)?.text
@@ -155,6 +160,14 @@ class ComposeExposeMcpProtocolTest {
                 server.close()
             }
         }
+
+    private fun toolInputProperties(
+        tools: List<io.modelcontextprotocol.kotlin.sdk.types.Tool>,
+        toolName: String,
+    ): kotlinx.serialization.json.JsonObject {
+        val tool = assertNotNull(tools.firstOrNull { it.name == toolName })
+        return assertNotNull(tool.inputSchema.properties)
+    }
 
     private fun toolResultProperties(
         tools: List<io.modelcontextprotocol.kotlin.sdk.types.Tool>,

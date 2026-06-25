@@ -110,11 +110,13 @@ Tools:
 
 - `search_composables(query, module, sourceSet, visibility, hasPreview, limit)`
 - `get_composable(id)`
-- `list_previews(group)`
+- `list_previews(group, module, sourceSet, annotation)`
 - `refresh_index(module)`
 - `index_status()`
 
 `search_composables` ranks exact name matches first, then prefix, substring, package, KDoc, parameter, annotation, and preview metadata matches. Results can be filtered by module, source set, Kotlin visibility, and preview presence. Results default to 20 items and are capped at 100 to keep agent context bounded.
+
+`list_previews` can be filtered by preview group, Gradle module, source set, or preview annotation, which lets clients inspect reusable preview coverage without reading the full index.
 
 Tool responses keep JSON text content for compatibility and also include MCP `structuredContent` wrappers for clients that can consume typed results directly: `results`, `composable`, `previews`, `result`, and `status`.
 

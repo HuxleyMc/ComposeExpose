@@ -4,7 +4,7 @@
 
 - A Gradle task can generate a stable JSON index for Compose declarations.
 - The index captures composable name, package, visibility, module, source set, source location, KDoc, parameters, annotations, and direct or multipreview preview metadata.
-- The MCP service can search, fetch by stable id, list previews, report stale indexes, and run an explicit Gradle refresh.
+- The MCP service can search, fetch by stable id, list filtered previews, report stale indexes, and run an explicit Gradle refresh.
 - Search supports module, source set, visibility, and preview-presence filters so agents can narrow reuse candidates without loading source files.
 - The KSP processor can walk `@Composable` function symbols and emit the same schema used by the canonical index task.
 

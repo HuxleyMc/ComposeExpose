@@ -211,12 +211,15 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
 
     server.addTool(
         name = "list_previews",
-        description = "List indexed Compose previews, optionally filtered by preview group.",
+        description = "List indexed Compose previews, optionally filtered by module, source set, group, or annotation.",
         inputSchema =
             ToolSchema(
                 properties =
                     buildJsonObject {
                         put("group", stringSchema("Optional Compose preview group filter."))
+                        put("module", stringSchema("Optional Gradle module path filter, for example :app."))
+                        put("sourceSet", stringSchema("Optional source set filter, for example main, debug, free, or paid."))
+                        put("annotation", stringSchema("Optional preview annotation filter, for example Preview or TabletPreviews."))
                     },
             ),
         outputSchema =
@@ -229,8 +232,13 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
             ),
     ) { request ->
         toolResult(json, "previews") {
-            val group = request.arguments.optionalString("list_previews", "group")
-            service.listPreviews(group)
+            val args = request.arguments
+            service.listPreviews(
+                group = args.optionalString("list_previews", "group"),
+                module = args.optionalString("list_previews", "module"),
+                sourceSet = args.optionalString("list_previews", "sourceSet"),
+                annotation = args.optionalString("list_previews", "annotation"),
+            )
         }
     }
 

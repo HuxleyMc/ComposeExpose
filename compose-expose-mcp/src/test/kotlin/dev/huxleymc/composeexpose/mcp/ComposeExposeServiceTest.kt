@@ -149,6 +149,62 @@ class ComposeExposeServiceTest {
         }
 
     @Test
+    fun `list previews filters by module source set and annotation`() =
+        runTest {
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        extraDeclarations =
+                            listOf(
+                                sampleComposable(
+                                    name = "FreeLandingPreviewHost",
+                                    source = "app/src/free/kotlin/dev/example/FreeLanding.kt",
+                                    sourceSet = "free",
+                                    previews =
+                                        listOf(
+                                            PreviewDeclaration(
+                                                annotation = "TabletPreviews",
+                                                name = "Free tablet",
+                                                group = "marketing",
+                                                arguments = mapOf("widthDp" to "840"),
+                                            ),
+                                        ),
+                                ),
+                                sampleComposable(
+                                    name = "DesignTokenPreview",
+                                    source = "design/src/main/kotlin/dev/design/DesignTokenPreview.kt",
+                                    module = ":design",
+                                    packageName = "dev.design",
+                                    previews =
+                                        listOf(
+                                            PreviewDeclaration(
+                                                annotation = "Preview",
+                                                name = "Tokens",
+                                                group = "design",
+                                                arguments = emptyMap(),
+                                            ),
+                                        ),
+                                ),
+                            ),
+                    ),
+                )
+            val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+
+            assertEquals(
+                listOf("DesignTokenPreview"),
+                service.listPreviews(module = ":design").map { it.composableName },
+            )
+            assertEquals(
+                listOf("FreeLandingPreviewHost"),
+                service.listPreviews(sourceSet = "free").map { it.composableName },
+            )
+            assertEquals(
+                listOf("FreeLandingPreviewHost"),
+                service.listPreviews(annotation = "TabletPreviews").map { it.composableName },
+            )
+        }
+
+    @Test
     fun `module summaries include counts packages previews and source sets`() =
         runTest {
             val indexFile =

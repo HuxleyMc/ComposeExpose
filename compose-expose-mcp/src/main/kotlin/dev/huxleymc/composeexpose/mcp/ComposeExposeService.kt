@@ -103,15 +103,25 @@ class ComposeExposeService(
 
     fun getComposable(id: String): ComposableDeclaration? = loadIndex().composables.firstOrNull { it.id == id }
 
-    fun listPreviews(group: String? = null): List<PreviewSearchResult> =
+    fun listPreviews(
+        group: String? = null,
+        module: String? = null,
+        sourceSet: String? = null,
+        annotation: String? = null,
+    ): List<PreviewSearchResult> =
         loadIndex()
             .composables
+            .asSequence()
+            .filter { module == null || it.module == module }
+            .filter { sourceSet == null || it.sourceSet == sourceSet }
             .flatMap { composable ->
                 composable.previews.map { preview ->
                     PreviewSearchResult(composable.id, composable.name, preview)
                 }
             }.filter { group == null || it.preview.group == group }
+            .filter { annotation == null || it.preview.annotation == annotation }
             .sortedWith(compareBy<PreviewSearchResult> { it.composableName }.thenBy { it.preview.name.orEmpty() })
+            .toList()
 
     fun moduleSummaries(): ModuleSummaryResource {
         val index = loadIndex()
