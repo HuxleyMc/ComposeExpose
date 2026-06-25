@@ -140,6 +140,29 @@ class ComposeExposeServiceTest {
         }
 
     @Test
+    fun `queries and status return recoverable error when index json is corrupt`() =
+        runTest {
+            val indexFile = tempDir.resolve("build/composeExpose/composables.json")
+            indexFile.parent.createDirectories()
+            indexFile.writeText("{not-json")
+            val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+
+            assertEquals(emptyList(), service.searchComposables(query = "AccountCard"))
+            assertEquals(null, service.getComposable(":app:main:dev.example.AccountCard#"))
+            assertEquals(emptyList(), service.listPreviews())
+
+            val summaries = service.moduleSummaries()
+            assertEquals(0L, summaries.generatedAtEpochMillis)
+            assertEquals(emptyList(), summaries.modules)
+
+            val status = service.indexStatus()
+            assertTrue(status.exists)
+            assertTrue(status.isStale)
+            assertNotNull(status.error)
+            assertTrue(status.error.contains("Failed to read ComposeExpose index"))
+        }
+
+    @Test
     fun `status reports stale source without running gradle`() =
         runTest {
             val sourceRoot = tempDir.resolve("app/src/main/kotlin").createDirectories()

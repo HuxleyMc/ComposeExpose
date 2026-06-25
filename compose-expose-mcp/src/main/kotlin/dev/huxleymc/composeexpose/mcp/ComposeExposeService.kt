@@ -48,6 +48,7 @@ data class IndexStatus(
     val sourceRoots: List<String>,
     val newerSources: List<String>,
     val refreshInProgress: Boolean,
+    val error: String? = null,
 )
 
 @Serializable
@@ -141,7 +142,20 @@ class ComposeExposeService(
                 refreshInProgress = refreshing,
             )
         }
-        val index = loadIndex()
+        val loadResult = loadIndexSafely()
+        if (loadResult.error != null) {
+            return IndexStatus(
+                exists = true,
+                isStale = true,
+                generatedAtEpochMillis = null,
+                modules = emptyList(),
+                sourceRoots = emptyList(),
+                newerSources = emptyList(),
+                refreshInProgress = refreshing,
+                error = loadResult.error,
+            )
+        }
+        val index = loadResult.index
         val newerSources = newerSources(index).map { projectRoot.relativize(it).toString() }.sorted()
         return IndexStatus(
             exists = true,
@@ -192,9 +206,18 @@ class ComposeExposeService(
         return result
     }
 
-    fun loadIndex(): ComposableIndex {
-        if (!Files.exists(indexFile)) return emptyIndex()
-        return ComposableIndexJson.decode(indexFile.readText())
+    fun loadIndex(): ComposableIndex = loadIndexSafely().index
+
+    private fun loadIndexSafely(): IndexLoadResult {
+        if (!Files.exists(indexFile)) return IndexLoadResult(index = emptyIndex(), error = null)
+        return try {
+            IndexLoadResult(index = ComposableIndexJson.decode(indexFile.readText()), error = null)
+        } catch (error: Exception) {
+            IndexLoadResult(
+                index = emptyIndex(),
+                error = "Failed to read ComposeExpose index: ${error.message ?: error::class.simpleName}",
+            )
+        }
     }
 
     private fun emptyIndex(): ComposableIndex =
@@ -247,6 +270,11 @@ class ComposeExposeService(
     private data class GradleInvocation(
         val command: List<String>,
         val result: RefreshExecution,
+    )
+
+    private data class IndexLoadResult(
+        val index: ComposableIndex,
+        val error: String?,
     )
 
     private fun ComposableDeclaration.toSearchMatch(query: String): SearchMatch? {
