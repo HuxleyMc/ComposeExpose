@@ -93,6 +93,17 @@ def main() -> int:
         require(status_content.get("isStale") is False, "index_status reported the fresh demo index as stale")
         require(":app" in status_content.get("modules", []), "index_status missing :app module")
 
+        refresh = client.request("tools/call", {"name": "refresh_index", "arguments": {}})
+        refresh_result = refresh.get("structuredContent", {}).get("result", {})
+        require(refresh_result.get("success") is True, "refresh_index did not report success")
+        require(
+            "composeExposeAggregateIndex" in refresh_result.get("output", ""),
+            "refresh_index output did not include composeExposeAggregateIndex",
+        )
+        refresh_status = refresh_result.get("status", {})
+        require(refresh_status.get("exists") is True, "refresh_index status did not report an existing index")
+        require(refresh_status.get("isStale") is False, "refresh_index status reported the refreshed index as stale")
+
         previews = client.request(
             "tools/call",
             {"name": "list_previews", "arguments": {"annotation": "Preview", "limit": 2}},
@@ -116,7 +127,7 @@ def main() -> int:
         require("composableCount" in modules_text, "modules resource missing composableCount")
         require("sourceSets" in modules_text, "modules resource missing sourceSets")
 
-        print("MCP stdio smoke passed: initialize, tools/list, search, lookup, status, previews, tool errors, resources/read.")
+        print("MCP stdio smoke passed: initialize, tools/list, search, lookup, status, refresh, previews, tool errors, resources/read.")
         return 0
     finally:
         process.terminate()

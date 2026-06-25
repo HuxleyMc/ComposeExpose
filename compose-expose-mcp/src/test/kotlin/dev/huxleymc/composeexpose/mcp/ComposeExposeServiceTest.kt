@@ -15,6 +15,7 @@ import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.getLastModifiedTime
+import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -500,6 +501,43 @@ class ComposeExposeServiceTest {
             assertTrue(result.success)
             assertFalse(result.status.refreshInProgress)
             assertNotNull(service.getComposable(":app:main:dev.example.FreshCard#"))
+        }
+
+    @Test
+    fun `refresh uses nearest parent gradle wrapper for nested project roots`() =
+        runTest {
+            val projectRoot = tempDir.resolve("demo").createDirectories()
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        metadata =
+                            IndexMetadata(
+                                generatedAtEpochMillis = 1_234L,
+                                projectRoot = projectRoot.toString(),
+                                modules = listOf(":app"),
+                                sourceRoots = emptyList(),
+                            ),
+                    ),
+                    projectRoot,
+                )
+            val marker = tempDir.resolve("gradle-args.txt")
+            val wrapper = tempDir.resolve("gradlew")
+            wrapper.writeText(
+                """
+                #!/usr/bin/env bash
+                printf '%s\n' "$@" > "$marker"
+                """.trimIndent(),
+            )
+            assertTrue(wrapper.toFile().setExecutable(true))
+            val service = ComposeExposeService(projectRoot = projectRoot, indexFile = indexFile)
+
+            val result = service.refreshIndex()
+
+            assertTrue(result.success, result.output)
+            assertEquals(
+                listOf("-p", projectRoot.toString(), "composeExposeAggregateIndex"),
+                marker.readText().lines().filter { it.isNotBlank() },
+            )
         }
 
     @Test

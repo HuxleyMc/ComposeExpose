@@ -387,8 +387,19 @@ class ComposeExposeService(
             args: List<String>,
         ): RefreshExecution =
             withContext(Dispatchers.IO) {
-                val executable = projectRoot.resolve(args.first()).toFile()
-                val command = if (executable.exists()) listOf(executable.absolutePath) + args.drop(1) else args
+                val wrapper = findNearestGradleWrapper(projectRoot)
+                val command =
+                    if (wrapper != null) {
+                        val projectArgument =
+                            if (wrapper.parent == projectRoot.toAbsolutePath().normalize()) {
+                                emptyList()
+                            } else {
+                                listOf("-p", projectRoot.toString())
+                            }
+                        listOf(wrapper.toString()) + projectArgument + args.drop(1)
+                    } else {
+                        args
+                    }
                 val process =
                     ProcessBuilder(command)
                         .directory(projectRoot.toFile())
@@ -397,6 +408,11 @@ class ComposeExposeService(
                 val output = process.inputStream.bufferedReader().readText()
                 RefreshExecution(process.waitFor(), output)
             }
+
+        private fun findNearestGradleWrapper(projectRoot: Path): Path? =
+            generateSequence(projectRoot.toAbsolutePath().normalize()) { path -> path.parent }
+                .map { path -> path.resolve("gradlew") }
+                .firstOrNull { wrapper -> Files.isRegularFile(wrapper) }
 
         private fun newerSources(
             projectRoot: Path,
