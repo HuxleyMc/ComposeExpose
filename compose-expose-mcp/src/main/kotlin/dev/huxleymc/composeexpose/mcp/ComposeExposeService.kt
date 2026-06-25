@@ -70,6 +70,7 @@ class ComposeExposeService(
     private val indexFile: Path = projectRoot.resolve("build/composeExpose/all-composables.json"),
     private val gradleRunner: suspend (List<String>) -> RefreshExecution = { args -> runGradle(projectRoot, args) },
     private val currentTimeMillis: () -> Long = { System.currentTimeMillis() },
+    private val newerSourcesScanner: (ComposableIndex) -> List<Path> = { index -> newerSources(projectRoot, index) },
 ) {
     private val refreshInProgress = AtomicBoolean(false)
 
@@ -179,16 +180,26 @@ class ComposeExposeService(
             )
         }
         val index = loadResult.index
-        val newerSources = newerSources(index).map { it.toStatusPath() }.sorted()
+        val newerSourcesResult =
+            try {
+                NewerSourcesResult(paths = newerSourcesScanner(index), error = null)
+            } catch (error: Exception) {
+                NewerSourcesResult(
+                    paths = emptyList(),
+                    error = "Failed to check ComposeExpose source freshness: ${error.message ?: error::class.simpleName}",
+                )
+            }
+        val newerSources = newerSourcesResult.paths.map { it.toStatusPath() }.sorted()
         return IndexStatus(
             exists = true,
-            isStale = newerSources.isNotEmpty(),
+            isStale = newerSources.isNotEmpty() || newerSourcesResult.error != null,
             generatedAtEpochMillis = index.metadata.generatedAtEpochMillis,
             ageMillis = indexAgeMillis(index.metadata.generatedAtEpochMillis),
             modules = index.metadata.modules,
             sourceRoots = index.metadata.sourceRoots,
             newerSources = newerSources,
             refreshInProgress = refreshing,
+            error = newerSourcesResult.error,
         )
     }
 
@@ -275,24 +286,6 @@ class ComposeExposeService(
         return executions
     }
 
-    private fun newerSources(index: ComposableIndex): List<Path> =
-        index.metadata.sourceRoots
-            .map { it.toSourceRootPath() }
-            .filter { Files.exists(it) }
-            .flatMap { root ->
-                Files.walk(root).use { stream ->
-                    stream
-                        .filter { it.isRegularFile() && it.toString().endsWith(".kt") }
-                        .filter { it.getLastModifiedTime().toMillis() > index.metadata.generatedAtEpochMillis }
-                        .toList()
-                }
-            }
-
-    private fun String.toSourceRootPath(): Path {
-        val path = Path.of(this)
-        return if (path.isAbsolute) path.normalize() else projectRoot.resolve(path).normalize()
-    }
-
     private fun Path.toStatusPath(): String {
         val absoluteProjectRoot = projectRoot.toAbsolutePath().normalize()
         val absolutePath = toAbsolutePath().normalize()
@@ -315,6 +308,11 @@ class ComposeExposeService(
 
     private data class IndexLoadResult(
         val index: ComposableIndex,
+        val error: String?,
+    )
+
+    private data class NewerSourcesResult(
+        val paths: List<Path>,
         val error: String?,
     )
 
@@ -376,5 +374,26 @@ class ComposeExposeService(
                 val output = process.inputStream.bufferedReader().readText()
                 RefreshExecution(process.waitFor(), output)
             }
+
+        private fun newerSources(
+            projectRoot: Path,
+            index: ComposableIndex,
+        ): List<Path> =
+            index.metadata.sourceRoots
+                .map { it.toSourceRootPath(projectRoot) }
+                .filter { Files.exists(it) }
+                .flatMap { root ->
+                    Files.walk(root).use { stream ->
+                        stream
+                            .filter { it.isRegularFile() && it.toString().endsWith(".kt") }
+                            .filter { it.getLastModifiedTime().toMillis() > index.metadata.generatedAtEpochMillis }
+                            .toList()
+                    }
+                }
+
+        private fun String.toSourceRootPath(projectRoot: Path): Path {
+            val path = Path.of(this)
+            return if (path.isAbsolute) path.normalize() else projectRoot.resolve(path).normalize()
+        }
     }
 }

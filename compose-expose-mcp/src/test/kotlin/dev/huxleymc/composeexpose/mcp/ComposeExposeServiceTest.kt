@@ -359,6 +359,41 @@ class ComposeExposeServiceTest {
         }
 
     @Test
+    fun `status returns recoverable error when source freshness scan fails`() =
+        runTest {
+            val sourceRoot = tempDir.resolve("app/src/main/kotlin").createDirectories()
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        metadata =
+                            IndexMetadata(
+                                generatedAtEpochMillis = 1_000L,
+                                projectRoot = tempDir.toString(),
+                                modules = listOf(":app"),
+                                sourceRoots = listOf(sourceRoot.toString()),
+                            ),
+                    ),
+                )
+            val service =
+                ComposeExposeService(
+                    projectRoot = tempDir,
+                    indexFile = indexFile,
+                    newerSourcesScanner = {
+                        throw IllegalStateException("source root unavailable")
+                    },
+                )
+
+            val status = service.indexStatus()
+
+            assertTrue(status.exists)
+            assertTrue(status.isStale)
+            assertEquals(1_000L, status.generatedAtEpochMillis)
+            assertEquals(emptyList(), status.newerSources)
+            assertNotNull(status.error)
+            assertTrue(status.error.contains("source root unavailable"))
+        }
+
+    @Test
     fun `status reports index age in milliseconds`() =
         runTest {
             val indexFile =
