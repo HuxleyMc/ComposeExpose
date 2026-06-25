@@ -61,12 +61,36 @@ def main() -> int:
         search_text = extract_text_content(search)
         require("MetricCard" in search_text, "search_composables did not return MetricCard")
 
+        status = client.request("tools/call", {"name": "index_status", "arguments": {}})
+        status_content = status.get("structuredContent", {}).get("status", {})
+        require(status_content.get("exists") is True, "index_status did not report an existing index")
+        require(status_content.get("isStale") is False, "index_status reported the fresh demo index as stale")
+        require(":app" in status_content.get("modules", []), "index_status missing :app module")
+
+        previews = client.request(
+            "tools/call",
+            {"name": "list_previews", "arguments": {"annotation": "Preview", "limit": 2}},
+        )
+        preview_items = previews.get("structuredContent", {}).get("previews", [])
+        require(0 < len(preview_items) <= 2, "list_previews did not return a bounded preview list")
+
+        invalid_limit = client.request(
+            "tools/call",
+            {"name": "search_composables", "arguments": {"query": "MetricCard", "limit": 0}},
+        )
+        require(invalid_limit.get("isError") is True, "invalid search_composables limit was not a tool error")
+        invalid_limit_text = extract_text_content(invalid_limit)
+        require(
+            "expected integer from 1 to 100" in invalid_limit_text,
+            "invalid search_composables limit returned an unexpected error message",
+        )
+
         modules = client.request("resources/read", {"uri": "compose-expose://modules"})
         modules_text = extract_resource_text(modules)
         require("composableCount" in modules_text, "modules resource missing composableCount")
         require("sourceSets" in modules_text, "modules resource missing sourceSets")
 
-        print("MCP stdio smoke passed: initialize, tools/list, search_composables, resources/read.")
+        print("MCP stdio smoke passed: initialize, tools/list, search, status, previews, tool errors, resources/read.")
         return 0
     finally:
         process.terminate()

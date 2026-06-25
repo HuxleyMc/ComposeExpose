@@ -57,6 +57,9 @@ jobs:
       - name: Verify release workflow contract
         run: ./scripts/verify-release-workflow.py
 
+      - name: Verify MCP smoke coverage
+        run: ./scripts/verify-mcp-smoke-coverage.py
+
       - name: Check root formatting
         run: ./gradlew --no-daemon spotlessCheck
 
