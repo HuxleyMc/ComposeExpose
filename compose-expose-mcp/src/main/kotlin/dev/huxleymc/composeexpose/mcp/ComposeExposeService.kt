@@ -156,7 +156,7 @@ class ComposeExposeService(
             )
         }
         val index = loadResult.index
-        val newerSources = newerSources(index).map { projectRoot.relativize(it).toString() }.sorted()
+        val newerSources = newerSources(index).map { it.toStatusPath() }.sorted()
         return IndexStatus(
             exists = true,
             isStale = newerSources.isNotEmpty(),
@@ -251,7 +251,7 @@ class ComposeExposeService(
 
     private fun newerSources(index: ComposableIndex): List<Path> =
         index.metadata.sourceRoots
-            .map { Path.of(it) }
+            .map { it.toSourceRootPath() }
             .filter { Files.exists(it) }
             .flatMap { root ->
                 Files.walk(root).use { stream ->
@@ -261,6 +261,21 @@ class ComposeExposeService(
                         .toList()
                 }
             }
+
+    private fun String.toSourceRootPath(): Path {
+        val path = Path.of(this)
+        return if (path.isAbsolute) path.normalize() else projectRoot.resolve(path).normalize()
+    }
+
+    private fun Path.toStatusPath(): String {
+        val absoluteProjectRoot = projectRoot.toAbsolutePath().normalize()
+        val absolutePath = toAbsolutePath().normalize()
+        return if (absolutePath.startsWith(absoluteProjectRoot)) {
+            absoluteProjectRoot.relativize(absolutePath).toString()
+        } else {
+            absolutePath.toString()
+        }
+    }
 
     private data class SearchMatch(
         val composable: ComposableDeclaration,

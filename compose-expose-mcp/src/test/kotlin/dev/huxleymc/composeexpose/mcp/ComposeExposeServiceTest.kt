@@ -190,6 +190,64 @@ class ComposeExposeServiceTest {
         }
 
     @Test
+    fun `status reports stale external source roots without crashing`() =
+        runTest {
+            val projectRoot = tempDir.resolve("project").createDirectories()
+            val externalSourceRoot = tempDir.resolve("included-build/src/main/kotlin").createDirectories()
+            val sourceFile = externalSourceRoot.resolve("ExternalCard.kt")
+            sourceFile.writeText("@Composable fun ExternalCard() {}")
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        metadata =
+                            IndexMetadata(
+                                generatedAtEpochMillis = sourceFile.getLastModifiedTime().toMillis() - 1_000,
+                                projectRoot = projectRoot.toString(),
+                                modules = listOf(":included"),
+                                sourceRoots = listOf(externalSourceRoot.toString()),
+                            ),
+                    ),
+                    projectRoot,
+                )
+            val service = ComposeExposeService(projectRoot = projectRoot, indexFile = indexFile)
+
+            val status = service.indexStatus()
+
+            assertTrue(status.isStale)
+            assertEquals(listOf(sourceFile.toString()), status.newerSources)
+            assertEquals(null, status.error)
+        }
+
+    @Test
+    fun `status resolves relative source roots from project root`() =
+        runTest {
+            val projectRoot = tempDir.resolve("project").createDirectories()
+            val sourceRoot = projectRoot.resolve("app/src/main/kotlin").createDirectories()
+            val sourceFile = sourceRoot.resolve("Cards.kt")
+            sourceFile.writeText("@Composable fun AccountCard() {}")
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        metadata =
+                            IndexMetadata(
+                                generatedAtEpochMillis = sourceFile.getLastModifiedTime().toMillis() - 1_000,
+                                projectRoot = projectRoot.toString(),
+                                modules = listOf(":app"),
+                                sourceRoots = listOf("app/src/main/kotlin"),
+                            ),
+                    ),
+                    projectRoot,
+                )
+            val service = ComposeExposeService(projectRoot = projectRoot, indexFile = indexFile)
+
+            val status = service.indexStatus()
+
+            assertTrue(status.isStale)
+            assertEquals(listOf("app/src/main/kotlin/Cards.kt"), status.newerSources)
+            assertEquals(null, status.error)
+        }
+
+    @Test
     fun `refresh invokes aggregate gradle task and reloads index`() =
         runTest {
             val indexFile = writeIndex(sampleIndex())
@@ -324,8 +382,11 @@ class ComposeExposeServiceTest {
             assertEquals(1, invocationCount)
         }
 
-    private fun writeIndex(index: ComposableIndex): Path {
-        val indexFile = tempDir.resolve("build/composeExpose/composables.json")
+    private fun writeIndex(
+        index: ComposableIndex,
+        root: Path = tempDir,
+    ): Path {
+        val indexFile = root.resolve("build/composeExpose/composables.json")
         indexFile.parent.createDirectories()
         indexFile.writeText(ComposableIndexJson.encode(index))
         return indexFile

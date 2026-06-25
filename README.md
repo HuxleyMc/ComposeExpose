@@ -122,6 +122,8 @@ Malformed tool arguments are returned as MCP tool errors with stable validation 
 
 The MCP can start before an index has been generated. In that state query tools return empty results, `compose-expose://modules` returns an empty summary, and `index_status()` reports `exists: false` and `isStale: true`; clients should call `refresh_index()` before retrying discovery. If the index file exists but cannot be decoded, query tools also return empty results and `index_status()` reports `exists: true`, `isStale: true`, and an `error` string so clients can recover by calling `refresh_index()`.
 
+`index_status().newerSources` reports stale files relative to the project root when they live under the project. Source roots outside the project are reported as normalized absolute paths so clients do not need to interpret `../` entries.
+
 Resources:
 
 - `compose-expose://index`
