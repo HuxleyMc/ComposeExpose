@@ -60,6 +60,32 @@ def main() -> int:
         )
         search_text = extract_text_content(search)
         require("MetricCard" in search_text, "search_composables did not return MetricCard")
+        search_results = search.get("structuredContent", {}).get("results", [])
+        require(len(search_results) == 1, "search_composables did not return one structured result")
+        composable_id = search_results[0].get("id")
+        require(isinstance(composable_id, str) and composable_id, "search_composables result missing id")
+
+        lookup = client.request(
+            "tools/call",
+            {"name": "get_composable", "arguments": {"id": composable_id}},
+        )
+        lookup_result = lookup.get("structuredContent", {}).get("result", {})
+        require(lookup_result.get("found") is True, "get_composable did not report the searched id as found")
+        require(
+            lookup_result.get("composable", {}).get("name") == "MetricCard",
+            "get_composable did not return MetricCard for the searched id",
+        )
+
+        missing_lookup = client.request(
+            "tools/call",
+            {"name": "get_composable", "arguments": {"id": ":missing:main:dev.example.MissingCard#"}},
+        )
+        missing_result = missing_lookup.get("structuredContent", {}).get("result", {})
+        require(missing_result.get("found") is False, "get_composable did not report an unknown id as missing")
+        require(
+            "search_composables" in (missing_result.get("message") or ""),
+            "get_composable miss did not include search recovery guidance",
+        )
 
         status = client.request("tools/call", {"name": "index_status", "arguments": {}})
         status_content = status.get("structuredContent", {}).get("status", {})
@@ -90,7 +116,7 @@ def main() -> int:
         require("composableCount" in modules_text, "modules resource missing composableCount")
         require("sourceSets" in modules_text, "modules resource missing sourceSets")
 
-        print("MCP stdio smoke passed: initialize, tools/list, search, status, previews, tool errors, resources/read.")
+        print("MCP stdio smoke passed: initialize, tools/list, search, lookup, status, previews, tool errors, resources/read.")
         return 0
     finally:
         process.terminate()
