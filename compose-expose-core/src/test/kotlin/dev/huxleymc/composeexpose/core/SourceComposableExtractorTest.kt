@@ -186,4 +186,36 @@ class SourceComposableExtractorTest {
         assertEquals(listOf("items", "selected"), list.parameters.map { it.name })
         assertEquals(":feature:main:dev.example.RankedList#items:List<T>,selected:T", list.id)
     }
+
+    @Test
+    fun `extracts composables with same-line annotations`() {
+        val sourceRoot = tempDir.resolve("src/main/kotlin").createDirectories()
+        val source = sourceRoot.resolve("dev/example/Inline.kt")
+        source.parent.createDirectories()
+        source.writeText(
+            """
+            package dev.example
+
+            import androidx.compose.runtime.Composable
+            import androidx.compose.ui.tooling.preview.Preview
+
+            @Preview(name = "Inline badge", group = "badges") @Composable fun InlineBadge(label: String) {}
+            """.trimIndent(),
+        )
+
+        val index =
+            SourceComposableExtractor().extract(
+                module = ":design",
+                sourceSet = "main",
+                sourceRoots = listOf(sourceRoot),
+                projectRoot = tempDir,
+            )
+
+        val badge = assertNotNull(index.composables.singleOrNull())
+        assertEquals("InlineBadge", badge.name)
+        assertEquals(listOf("@Preview", "@Composable"), badge.annotations)
+        assertEquals(listOf("label"), badge.parameters.map { it.name })
+        assertEquals("Inline badge", badge.previews.single().name)
+        assertEquals("badges", badge.previews.single().group)
+    }
 }

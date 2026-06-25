@@ -66,6 +66,31 @@ class SourceComposableExtractor {
                 }
 
                 trimmed.startsWith("@") -> {
+                    val inline = readInlineAnnotatedFunction(trimmed)
+                    if (inline != null) {
+                        val startLine = index + 1
+                        val signatureLines = lines.toMutableList()
+                        signatureLines[index] = inline.signatureStart
+                        val (signature, next) = readFunctionSignature(signatureLines, index)
+                        val declaration =
+                            parseFunction(
+                                module = module,
+                                sourceSet = sourceSet,
+                                packageName = packageName,
+                                file = file,
+                                projectRoot = projectRoot,
+                                line = startLine,
+                                kdoc = pendingKdoc,
+                                annotations = pendingAnnotations + inline.annotations,
+                                multipreviews = multipreviews,
+                                signature = signature,
+                            )
+                        if (declaration != null) declarations += declaration
+                        pendingKdoc = null
+                        pendingAnnotations.clear()
+                        index = next
+                        continue
+                    }
                     val (annotation, next) = readAnnotation(lines, index)
                     pendingAnnotations += annotation
                     index = next
@@ -181,6 +206,28 @@ class SourceComposableExtractor {
             index++
         } while (index < lines.size && balance > 0)
         return parts.joinToString(" ").replace(Regex("\\s+"), " ") to index
+    }
+
+    private fun readInlineAnnotatedFunction(line: String): InlineAnnotatedFunction? {
+        val annotations = mutableListOf<String>()
+        var cursor = 0
+        while (cursor < line.length && line[cursor] == '@') {
+            val start = cursor
+            var parenBalance = 0
+            do {
+                val char = line[cursor]
+                when (char) {
+                    '(' -> parenBalance++
+                    ')' -> if (parenBalance > 0) parenBalance--
+                }
+                cursor++
+            } while (cursor < line.length && (parenBalance > 0 || !line[cursor].isWhitespace()))
+            annotations += line.substring(start, cursor).trim()
+            while (cursor < line.length && line[cursor].isWhitespace()) cursor++
+        }
+        val signatureStart = line.substring(cursor).trim()
+        if (annotations.isEmpty() || !functionStartRegex.containsMatchIn(signatureStart)) return null
+        return InlineAnnotatedFunction(annotations = annotations, signatureStart = signatureStart)
     }
 
     private fun readFunctionSignature(
@@ -342,6 +389,11 @@ class SourceComposableExtractor {
         val parameterSignature = parameters.joinToString(",") { "${it.name}:${it.type}" }
         return "$module:$sourceSet:$qualifiedName#$parameterSignature"
     }
+
+    private data class InlineAnnotatedFunction(
+        val annotations: List<String>,
+        val signatureStart: String,
+    )
 
     private companion object {
         val packageRegex = Regex("^\\s*package\\s+([A-Za-z0-9_.]+)")
