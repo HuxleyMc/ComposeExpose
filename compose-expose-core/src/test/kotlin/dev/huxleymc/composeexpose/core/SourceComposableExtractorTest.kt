@@ -80,4 +80,40 @@ class SourceComposableExtractorTest {
         assertEquals(null, chip.kdoc)
         assertEquals("Boolean", chip.parameters.single().type)
     }
+
+    @Test
+    fun `extracts extension composables`() {
+        val sourceRoot = tempDir.resolve("src/main/kotlin").createDirectories()
+        val source = sourceRoot.resolve("dev/example/Actions.kt")
+        source.parent.createDirectories()
+        source.writeText(
+            """
+            package dev.example
+
+            import androidx.compose.foundation.layout.RowScope
+            import androidx.compose.runtime.Composable
+
+            @Composable
+            fun RowScope.PrimaryAction(
+                label: String,
+                enabled: Boolean = true,
+            ) {
+            }
+            """.trimIndent(),
+        )
+
+        val index =
+            SourceComposableExtractor().extract(
+                module = ":design",
+                sourceSet = "main",
+                sourceRoots = listOf(sourceRoot),
+                projectRoot = tempDir,
+            )
+
+        val action = assertNotNull(index.composables.singleOrNull())
+        assertEquals("PrimaryAction", action.name)
+        assertEquals("dev.example", action.packageName)
+        assertEquals(listOf("label", "enabled"), action.parameters.map { it.name })
+        assertEquals(":design:main:dev.example.PrimaryAction#label:String,enabled:Boolean", action.id)
+    }
 }
