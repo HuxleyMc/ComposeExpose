@@ -116,6 +116,8 @@ Tools:
 
 `search_composables` ranks exact name matches first, then prefix, substring, package, KDoc, parameter, annotation, and preview metadata matches. Results default to 20 items and are capped at 100 to keep agent context bounded.
 
+Tool responses keep JSON text content for compatibility and also include MCP `structuredContent` wrappers for clients that can consume typed results directly: `results`, `composable`, `previews`, `result`, and `status`.
+
 Malformed tool arguments are returned as MCP tool errors with stable validation messages, so clients can fix the request and continue using the same session.
 
 `refresh_index` returns a structured success flag, Gradle output, and a fresh `index_status` snapshot. Without a module argument it runs `composeExposeAggregateIndex`. With a module argument it runs `<module>:composeExposeIndex` and then `composeExposeAggregateIndex`, so the aggregate index served by MCP is refreshed before clients query again. Invalid module paths, concurrent refresh requests, and Gradle launch failures are returned as `success: false` results so MCP clients can recover without treating the server session as failed.

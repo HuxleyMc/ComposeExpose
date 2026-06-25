@@ -26,6 +26,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 import java.nio.file.Path
@@ -141,16 +142,14 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                     },
             ),
     ) { request ->
-        toolResult {
+        toolResult(json, "results") {
             val args = request.arguments
-            val result =
-                service.searchComposables(
-                    query = args.optionalString("search_composables", "query"),
-                    module = args.optionalString("search_composables", "module"),
-                    sourceSet = args.optionalString("search_composables", "sourceSet"),
-                    limit = args.optionalInt("search_composables", "limit") ?: 20,
-                )
-            json.encodeToString(result)
+            service.searchComposables(
+                query = args.optionalString("search_composables", "query"),
+                module = args.optionalString("search_composables", "module"),
+                sourceSet = args.optionalString("search_composables", "sourceSet"),
+                limit = args.optionalInt("search_composables", "limit") ?: 20,
+            )
         }
     }
 
@@ -166,9 +165,9 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                     },
             ),
     ) { request ->
-        toolResult {
+        toolResult(json, "composable") {
             val id = request.arguments.requiredString("get_composable", "id")
-            json.encodeToString(service.getComposable(id))
+            service.getComposable(id)
         }
     }
 
@@ -183,9 +182,9 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                     },
             ),
     ) { request ->
-        toolResult {
+        toolResult(json, "previews") {
             val group = request.arguments.optionalString("list_previews", "group")
-            json.encodeToString(service.listPreviews(group))
+            service.listPreviews(group)
         }
     }
 
@@ -200,10 +199,9 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                     },
             ),
     ) { request ->
-        toolResult {
+        toolResult(json, "result") {
             val module = request.arguments.optionalString("refresh_index", "module")
-            val result = runBlocking { service.refreshIndex(module) }
-            json.encodeToString(result)
+            runBlocking { service.refreshIndex(module) }
         }
     }
 
@@ -211,17 +209,38 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
         name = "index_status",
         description = "Report index age, source roots, modules, and whether sources are newer than the index.",
     ) {
-        CallToolResult(content = listOf(TextContent(json.encodeToString(service.indexStatus()))))
+        toolResult(json, "status") {
+            service.indexStatus()
+        }
     }
 
     return server
 }
 
-private fun toolResult(block: () -> String): CallToolResult =
+private inline fun <reified T> toolResult(
+    json: Json,
+    structuredKey: String,
+    block: () -> T,
+): CallToolResult =
     try {
-        CallToolResult(content = listOf(TextContent(block())))
+        val result = block()
+        CallToolResult(
+            content = listOf(TextContent(json.encodeToString(result))),
+            structuredContent =
+                buildJsonObject {
+                    put(structuredKey, json.encodeToJsonElement(result))
+                },
+        )
     } catch (error: ToolArgumentException) {
-        CallToolResult(content = listOf(TextContent(error.message.orEmpty())), isError = true)
+        val message = error.message.orEmpty()
+        CallToolResult(
+            content = listOf(TextContent(message)),
+            isError = true,
+            structuredContent =
+                buildJsonObject {
+                    put("error", message)
+                },
+        )
     }
 
 private fun JsonObject?.optionalString(

@@ -17,6 +17,9 @@ import io.modelcontextprotocol.kotlin.sdk.types.TextResourceContents
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -58,6 +61,17 @@ class ComposeExposeMcpProtocolTest {
                 assertNotNull(text)
                 assertTrue(text.contains("AccountCard"))
                 assertEquals(1, Regex("\"name\"").findAll(text).count())
+
+                val structuredContent = assertNotNull(result.structuredContent)
+                val structuredResults = assertNotNull(structuredContent["results"]).jsonArray
+                assertEquals(
+                    "AccountCard",
+                    structuredResults
+                        .single()
+                        .jsonObject["name"]
+                        ?.jsonPrimitive
+                        ?.content,
+                )
 
                 val modules =
                     client.readResource(
