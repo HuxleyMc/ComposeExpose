@@ -30,6 +30,13 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.processResources {
+    inputs.property("composeExposeVersion", project.version.toString())
+    filesMatching("compose-expose-version.properties") {
+        expand("version" to project.version.toString())
+    }
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {

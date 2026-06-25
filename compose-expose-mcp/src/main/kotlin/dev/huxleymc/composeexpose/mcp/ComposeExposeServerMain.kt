@@ -79,7 +79,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
     val json = Json { prettyPrint = true }
     val server =
         Server(
-            serverInfo = Implementation(name = "compose-expose", version = "0.1.0"),
+            serverInfo = Implementation(name = "compose-expose", version = resolveComposeExposeServerVersion()),
             options =
                 ServerOptions(
                     capabilities =
