@@ -132,8 +132,9 @@ Resources:
 
 - `compose-expose://index`
 - `compose-expose://modules`
+- `compose-expose://module/{module}`
 
-`compose-expose://index` returns the full generated JSON index. `compose-expose://modules` returns a compact summary with generated timestamp, project root, source roots, and per-module composable counts, preview counts, source sets, and packages.
+`compose-expose://index` returns the full generated JSON index. `compose-expose://modules` returns a compact summary with generated timestamp, project root, source roots, and per-module composable counts, preview counts, source sets, and packages. `compose-expose://module/{module}` returns one module summary, for example `compose-expose://module/:app`.
 
 ## Demo app
 

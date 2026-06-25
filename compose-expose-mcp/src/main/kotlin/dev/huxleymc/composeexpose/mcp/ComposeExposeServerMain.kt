@@ -129,6 +129,25 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
         )
     }
 
+    server.addResourceTemplate(
+        uriTemplate = "compose-expose://module/{module}",
+        name = "Compose module detail",
+        description = "Summary for one indexed Gradle module.",
+        mimeType = "application/json",
+    ) { request, variables ->
+        val module = variables["module"].orEmpty()
+        ReadResourceResult(
+            contents =
+                listOf(
+                    TextResourceContents(
+                        text = json.encodeToString(service.moduleSummary(module)),
+                        uri = request.uri,
+                        mimeType = "application/json",
+                    ),
+                ),
+        )
+    }
+
     server.addTool(
         name = "search_composables",
         description = "Search indexed Jetpack Compose composables by name, package, or KDoc.",

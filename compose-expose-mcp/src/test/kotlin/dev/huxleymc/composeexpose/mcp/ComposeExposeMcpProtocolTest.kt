@@ -10,6 +10,7 @@ import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.server.ServerSession
 import io.modelcontextprotocol.kotlin.sdk.testing.ChannelTransport
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
+import io.modelcontextprotocol.kotlin.sdk.types.ListResourceTemplatesRequest
 import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequest
 import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequestParams
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
@@ -128,6 +129,18 @@ class ComposeExposeMcpProtocolTest {
                 assertNotNull(modulesText)
                 assertTrue(modulesText.contains("\"composableCount\""))
                 assertTrue(modulesText.contains("\"packages\""))
+
+                val resourceTemplates = client.listResourceTemplates(ListResourceTemplatesRequest())
+                assertTrue(resourceTemplates.resourceTemplates.any { it.uriTemplate == "compose-expose://module/{module}" })
+
+                val module =
+                    client.readResource(
+                        ReadResourceRequest(ReadResourceRequestParams(uri = "compose-expose://module/:app")),
+                    )
+                val moduleText = (module.contents.firstOrNull() as? TextResourceContents)?.text
+                assertNotNull(moduleText)
+                assertTrue(moduleText.contains("\"module\": \":app\""))
+                assertTrue(moduleText.contains("\"composableCount\": 2"))
             } finally {
                 client.close()
                 server.close()

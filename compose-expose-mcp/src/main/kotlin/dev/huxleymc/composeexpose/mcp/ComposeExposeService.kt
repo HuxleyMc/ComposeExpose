@@ -128,6 +128,8 @@ class ComposeExposeService(
         )
     }
 
+    fun moduleSummary(module: String): ModuleSummary? = moduleSummaries().modules.firstOrNull { it.module == module }
+
     fun indexStatus(): IndexStatus = buildIndexStatus(refreshInProgress.get())
 
     private fun buildIndexStatus(refreshing: Boolean): IndexStatus {
