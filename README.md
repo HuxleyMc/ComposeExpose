@@ -96,6 +96,8 @@ Streamable HTTP is available for inspector/debugging workflows:
 ./gradlew :compose-expose-mcp:run --args="--project-root /path/to/project --transport http --port 3000"
 ```
 
+HTTP ports must be in the TCP range `1..65535`.
+
 Connect an MCP inspector/client to:
 
 ```text

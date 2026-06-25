@@ -43,4 +43,19 @@ class ComposeExposeCliTest {
             ComposeExposeCli.parse(arrayOf("--wat"), defaultProjectRoot = Path.of("/repo"))
         }
     }
+
+    @Test
+    fun `rejects ports outside tcp range`() {
+        listOf("0", "-1", "65536").forEach { port ->
+            val error =
+                assertFailsWith<IllegalArgumentException> {
+                    ComposeExposeCli.parse(
+                        arrayOf("--transport", "http", "--port", port),
+                        defaultProjectRoot = Path.of("/repo"),
+                    )
+                }
+
+            assertEquals("--port must be between 1 and 65535", error.message)
+        }
+    }
 }

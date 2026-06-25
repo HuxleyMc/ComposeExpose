@@ -58,8 +58,14 @@ object ComposeExposeCli {
                 }
 
                 "--port" -> {
-                    port = args.requiredValue(index, arg).toIntOrNull()
-                        ?: throw IllegalArgumentException("--port must be an integer")
+                    port =
+                        args
+                            .requiredValue(index, arg)
+                            .toIntOrNull()
+                            ?: throw IllegalArgumentException("--port must be an integer")
+                    if (port !in MIN_PORT..MAX_PORT) {
+                        throw IllegalArgumentException("--port must be between $MIN_PORT and $MAX_PORT")
+                    }
                     index += 2
                 }
 
@@ -89,7 +95,7 @@ object ComposeExposeCli {
           --project-root <path>   Gradle project root. Defaults to current directory.
           --index-file <path>     Index JSON. Defaults to build/composeExpose/all-composables.json.
           --transport <stdio|http> MCP transport. Defaults to stdio.
-          --port <port>           HTTP port when --transport http is used. Defaults to 3000.
+          --port <port>           HTTP port from 1 to 65535 when --transport http is used. Defaults to 3000.
           -h, --help              Show this help.
         """.trimIndent()
 
@@ -97,6 +103,9 @@ object ComposeExposeCli {
         index: Int,
         flag: String,
     ): String = getOrNull(index + 1) ?: throw IllegalArgumentException("Missing value for $flag")
+
+    private const val MIN_PORT = 1
+    private const val MAX_PORT = 65535
 }
 
 class HelpRequested(
