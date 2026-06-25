@@ -346,10 +346,11 @@ class SourceComposableExtractor {
     private companion object {
         val packageRegex = Regex("^\\s*package\\s+([A-Za-z0-9_.]+)")
         val annotationClassRegex = Regex("\\bannotation\\s+class\\s+(\\w+)")
-        val functionStartRegex = Regex("\\bfun\\s+(?:<[^>]+>\\s+)?(?:[\\w.<>?]+\\.)?\\w+\\s*\\(")
+        const val TYPE_PARAMETERS_PATTERN = "<(?:[^<>]|<[^<>]*>)+>"
+        val functionStartRegex = Regex("\\bfun\\s+(?:$TYPE_PARAMETERS_PATTERN\\s+)?(?:[\\w.<>?]+\\.)?\\w+\\s*\\(")
         val functionRegex =
             Regex(
-                "(?:(?<visibility>public|private|internal|protected)\\s+)?(?:[\\w<>]+\\s+)*fun\\s+(?:<[^>]+>\\s+)?(?:[\\w.<>?]+\\.)?(?<name>\\w+)\\s*\\((?<params>.*)\\)",
+                "(?:(?<visibility>public|private|internal|protected)\\s+)?(?:[\\w<>]+\\s+)*fun\\s+(?:$TYPE_PARAMETERS_PATTERN\\s+)?(?:[\\w.<>?]+\\.)?(?<name>\\w+)\\s*\\((?<params>.*)\\)",
             )
     }
 }

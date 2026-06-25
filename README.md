@@ -5,7 +5,7 @@ ComposeExpose indexes Jetpack Compose UI declarations and serves them through MC
 It contains:
 
 - `io.github.huxleymc.composeexpose`, a Gradle plugin that writes per-module and aggregate indexes.
-- A declaration-level Compose extractor for names, generic and receiver-qualified extension composables, source locations, KDoc, parameters, annotations, and previews.
+- A declaration-level Compose extractor for names, bounded generic and receiver-qualified extension composables, source locations, KDoc, parameters, annotations, and previews.
 - A KSP processor path that can produce the same index shape from `@Composable` symbols.
 - A JVM MCP server command with stdio and Streamable HTTP transports.
 

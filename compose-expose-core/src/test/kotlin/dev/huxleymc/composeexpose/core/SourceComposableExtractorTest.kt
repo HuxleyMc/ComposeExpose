@@ -152,4 +152,38 @@ class SourceComposableExtractorTest {
         assertEquals("T?", list.parameters.single { it.name == "selected" }.type)
         assertEquals(":feature:main:dev.example.ReusableList#items:List<T>,selected:T?", list.id)
     }
+
+    @Test
+    fun `extracts generic composables with nested type parameter bounds`() {
+        val sourceRoot = tempDir.resolve("src/main/kotlin").createDirectories()
+        val source = sourceRoot.resolve("dev/example/Ranked.kt")
+        source.parent.createDirectories()
+        source.writeText(
+            """
+            package dev.example
+
+            import androidx.compose.runtime.Composable
+
+            @Composable
+            fun <T : Comparable<T>> RankedList(
+                items: List<T>,
+                selected: T,
+            ) {
+            }
+            """.trimIndent(),
+        )
+
+        val index =
+            SourceComposableExtractor().extract(
+                module = ":feature",
+                sourceSet = "main",
+                sourceRoots = listOf(sourceRoot),
+                projectRoot = tempDir,
+            )
+
+        val list = assertNotNull(index.composables.singleOrNull())
+        assertEquals("RankedList", list.name)
+        assertEquals(listOf("items", "selected"), list.parameters.map { it.name })
+        assertEquals(":feature:main:dev.example.RankedList#items:List<T>,selected:T", list.id)
+    }
 }
