@@ -222,7 +222,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
         outputSchema =
             toolOutputSchema(
                 "result",
-                objectSchema("Refresh result with success, Gradle output, and a fresh index_status snapshot."),
+                refreshResultSchema(),
             ),
     ) { request ->
         toolResult(json, "result") {
@@ -234,7 +234,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
     server.addTool(
         name = "index_status",
         description = "Report index age, source roots, modules, and whether sources are newer than the index.",
-        outputSchema = toolOutputSchema("status", objectSchema("Current index freshness and source-root status.")),
+        outputSchema = toolOutputSchema("status", indexStatusSchema()),
     ) {
         toolResult(json, "status") {
             service.indexStatus()
@@ -274,6 +274,13 @@ private fun integerSchema(
         put("maximum", maximum)
     }
 
+private fun longSchema(description: String): JsonObject =
+    buildJsonObject {
+        put("type", "integer")
+        put("description", description)
+        put("format", "int64")
+    }
+
 private fun arraySchema(
     description: String,
     itemSchema: JsonObject = objectSchema("Array item."),
@@ -310,6 +317,8 @@ private fun booleanSchema(description: String): JsonObject =
     }
 
 private fun nullableStringSchema(description: String): JsonObject = nullableSchema(description, stringSchema(description))
+
+private fun nullableLongSchema(description: String): JsonObject = nullableSchema(description, longSchema(description))
 
 private fun nullableSchema(
     description: String,
@@ -429,6 +438,44 @@ private fun previewSearchResultSchema(): JsonObject =
                 put("composableId", stringSchema("Stable composable id that owns the preview."))
                 put("composableName", stringSchema("Composable function name that owns the preview."))
                 put("preview", previewSchema())
+            },
+    )
+
+private fun indexStatusSchema(): JsonObject =
+    objectSchema(
+        description = "Current index freshness and source-root status.",
+        required =
+            listOf(
+                "exists",
+                "isStale",
+                "generatedAtEpochMillis",
+                "modules",
+                "sourceRoots",
+                "newerSources",
+                "refreshInProgress",
+            ),
+        properties =
+            buildJsonObject {
+                put("exists", booleanSchema("Whether the aggregate index file exists."))
+                put("isStale", booleanSchema("Whether sources are newer than the index or the index cannot be read."))
+                put("generatedAtEpochMillis", nullableLongSchema("Index generation timestamp, or null when unavailable."))
+                put("modules", stringArraySchema("Indexed Gradle module paths."))
+                put("sourceRoots", stringArraySchema("Source roots scanned for staleness checks."))
+                put("newerSources", stringArraySchema("Known Kotlin source files newer than the index."))
+                put("refreshInProgress", booleanSchema("Whether refresh_index is currently running Gradle."))
+                put("error", nullableStringSchema("Recoverable index read or status error, when present."))
+            },
+    )
+
+private fun refreshResultSchema(): JsonObject =
+    objectSchema(
+        description = "Refresh result with success, Gradle output, and a fresh index_status snapshot.",
+        required = listOf("success", "output", "status"),
+        properties =
+            buildJsonObject {
+                put("success", booleanSchema("Whether Gradle refresh completed successfully."))
+                put("output", stringSchema("Gradle output or recoverable failure message."))
+                put("status", indexStatusSchema())
             },
     )
 

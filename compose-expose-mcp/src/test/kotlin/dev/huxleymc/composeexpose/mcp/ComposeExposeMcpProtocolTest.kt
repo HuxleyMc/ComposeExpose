@@ -89,6 +89,19 @@ class ComposeExposeMcpProtocolTest {
                     nestedArrayItemSchemaPropertyType(resultItemProperties, "previews", "annotation"),
                 )
 
+                val statusProperties = toolResultProperties(tools.tools, "index_status", "status")
+                assertEquals("boolean", schemaPropertyType(statusProperties, "exists"))
+                assertEquals("boolean", schemaPropertyType(statusProperties, "isStale"))
+                assertEquals("array", schemaPropertyType(statusProperties, "newerSources"))
+                assertEquals("string", arrayItemSchemaType(statusProperties, "newerSources"))
+                assertEquals("boolean", schemaPropertyType(statusProperties, "refreshInProgress"))
+
+                val refreshProperties = toolResultProperties(tools.tools, "refresh_index", "result")
+                assertEquals("boolean", schemaPropertyType(refreshProperties, "success"))
+                assertEquals("string", schemaPropertyType(refreshProperties, "output"))
+                assertEquals("object", schemaPropertyType(refreshProperties, "status"))
+                assertEquals("boolean", nestedSchemaPropertyType(refreshProperties, "status", "exists"))
+
                 val result = client.callTool("search_composables", mapOf("query" to "AccountCard", "limit" to 1))
 
                 val text = (result.content.firstOrNull() as? TextContent)?.text
@@ -121,6 +134,22 @@ class ComposeExposeMcpProtocolTest {
             }
         }
 
+    private fun toolResultProperties(
+        tools: List<io.modelcontextprotocol.kotlin.sdk.types.Tool>,
+        toolName: String,
+        resultName: String,
+    ): kotlinx.serialization.json.JsonObject {
+        val tool = assertNotNull(tools.firstOrNull { it.name == toolName })
+        val outputSchema = tool.outputSchema ?: error("$toolName outputSchema was missing")
+        val outputProperties = assertNotNull(outputSchema.properties)
+        return assertNotNull(
+            outputProperties[resultName]
+                ?.jsonObject
+                ?.get("properties")
+                ?.jsonObject,
+        )
+    }
+
     private fun schemaPropertyType(
         properties: kotlinx.serialization.json.JsonObject,
         name: String,
@@ -141,6 +170,18 @@ class ComposeExposeMcpProtocolTest {
             ?.get("properties")
             ?.jsonObject
             ?.let { nestedProperties -> schemaPropertyType(nestedProperties, nestedName) }
+
+    private fun arrayItemSchemaType(
+        properties: kotlinx.serialization.json.JsonObject,
+        name: String,
+    ): String? =
+        properties[name]
+            ?.jsonObject
+            ?.get("items")
+            ?.jsonObject
+            ?.get("type")
+            ?.jsonPrimitive
+            ?.content
 
     private fun nestedArrayItemSchemaPropertyType(
         properties: kotlinx.serialization.json.JsonObject,
