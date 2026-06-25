@@ -77,14 +77,19 @@ class ComposeExposeService(
         query: String? = null,
         module: String? = null,
         sourceSet: String? = null,
+        visibility: String? = null,
+        hasPreview: Boolean? = null,
         limit: Int = DEFAULT_SEARCH_LIMIT,
     ): List<ComposableDeclaration> {
         val normalizedQuery = query?.trim()?.lowercase().orEmpty()
+        val normalizedVisibility = visibility?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
         return loadIndex()
             .composables
             .asSequence()
             .filter { module == null || it.module == module }
             .filter { sourceSet == null || it.sourceSet == sourceSet }
+            .filter { normalizedVisibility == null || it.visibility.lowercase() == normalizedVisibility }
+            .filter { hasPreview == null || it.previews.isNotEmpty() == hasPreview }
             .mapNotNull { composable -> composable.toSearchMatch(normalizedQuery) }
             .sortedWith(
                 compareBy<SearchMatch> { it.score }

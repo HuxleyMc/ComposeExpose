@@ -108,13 +108,13 @@ http://127.0.0.1:3000/mcp
 
 Tools:
 
-- `search_composables(query, module, sourceSet, limit)`
+- `search_composables(query, module, sourceSet, visibility, hasPreview, limit)`
 - `get_composable(id)`
 - `list_previews(group)`
 - `refresh_index(module)`
 - `index_status()`
 
-`search_composables` ranks exact name matches first, then prefix, substring, package, KDoc, parameter, annotation, and preview metadata matches. Results default to 20 items and are capped at 100 to keep agent context bounded.
+`search_composables` ranks exact name matches first, then prefix, substring, package, KDoc, parameter, annotation, and preview metadata matches. Results can be filtered by module, source set, Kotlin visibility, and preview presence. Results default to 20 items and are capped at 100 to keep agent context bounded.
 
 Tool responses keep JSON text content for compatibility and also include MCP `structuredContent` wrappers for clients that can consume typed results directly: `results`, `composable`, `previews`, `result`, and `status`.
 

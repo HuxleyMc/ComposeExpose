@@ -60,6 +60,9 @@ class ComposeExposeMcpProtocolTest {
 
                 val tools = client.listTools()
                 val searchTool = assertNotNull(tools.tools.firstOrNull { it.name == "search_composables" })
+                val searchInputProperties = assertNotNull(searchTool.inputSchema.properties)
+                assertEquals("string", schemaPropertyType(searchInputProperties, "visibility"))
+                assertEquals("boolean", schemaPropertyType(searchInputProperties, "hasPreview"))
                 val searchOutputSchema = searchTool.outputSchema ?: error("search_composables outputSchema was missing")
                 val searchOutputProperties = assertNotNull(searchOutputSchema.properties)
                 assertEquals(

@@ -108,6 +108,47 @@ class ComposeExposeServiceTest {
         }
 
     @Test
+    fun `search filters by visibility and preview presence`() =
+        runTest {
+            val indexFile =
+                writeIndex(
+                    sampleIndex(
+                        extraDeclarations =
+                            listOf(
+                                sampleComposable(
+                                    name = "InternalDebugCard",
+                                    source = "app/src/debug/kotlin/dev/example/InternalDebugCard.kt",
+                                    visibility = "private",
+                                    previews =
+                                        listOf(
+                                            PreviewDeclaration(
+                                                annotation = "Preview",
+                                                name = "Debug",
+                                                group = "internal",
+                                                arguments = emptyMap(),
+                                            ),
+                                        ),
+                                ),
+                                sampleComposable(
+                                    name = "PublicNoPreviewCard",
+                                    source = "app/src/main/kotlin/dev/example/PublicNoPreviewCard.kt",
+                                ),
+                            ),
+                    ),
+                )
+            val service = ComposeExposeService(projectRoot = tempDir, indexFile = indexFile)
+
+            assertEquals(
+                listOf("AccountCard", "InternalDebugCard"),
+                service.searchComposables(query = "card", hasPreview = true).map { it.name },
+            )
+            assertEquals(
+                listOf("InternalDebugCard"),
+                service.searchComposables(query = "card", visibility = "private").map { it.name },
+            )
+        }
+
+    @Test
     fun `module summaries include counts packages previews and source sets`() =
         runTest {
             val indexFile =
@@ -498,6 +539,7 @@ class ComposeExposeServiceTest {
         module: String = ":app",
         sourceSet: String = "main",
         packageName: String = "dev.example",
+        visibility: String = "public",
         kdocBody: String? = null,
         parameters: List<ComposableParameter> = emptyList(),
         annotations: List<String> = listOf("@Composable"),
@@ -509,7 +551,7 @@ class ComposeExposeServiceTest {
             sourceSet = sourceSet,
             packageName = packageName,
             name = name,
-            visibility = "public",
+            visibility = visibility,
             source = SourceLocation(source, 4, 1),
             kdoc = kdocBody?.let { Kdoc(it.lineSequence().first(), it) },
             parameters = parameters,

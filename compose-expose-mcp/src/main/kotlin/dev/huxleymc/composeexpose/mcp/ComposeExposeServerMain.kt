@@ -24,6 +24,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -162,6 +163,8 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                         )
                         put("module", stringSchema("Optional Gradle module path filter, for example :app."))
                         put("sourceSet", stringSchema("Optional source set filter, for example main, debug, free, or paid."))
+                        put("visibility", stringSchema("Optional Kotlin visibility filter, for example public or private."))
+                        put("hasPreview", booleanSchema("Optional filter for composables that do or do not declare previews."))
                         put("limit", integerSchema("Maximum results to return.", minimum = 1, maximum = 100))
                     },
             ),
@@ -173,6 +176,8 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                 query = args.optionalString("search_composables", "query"),
                 module = args.optionalString("search_composables", "module"),
                 sourceSet = args.optionalString("search_composables", "sourceSet"),
+                visibility = args.optionalString("search_composables", "visibility"),
+                hasPreview = args.optionalBoolean("search_composables", "hasPreview"),
                 limit = args.optionalInt("search_composables", "limit") ?: 20,
             )
         }
@@ -570,6 +575,21 @@ private fun JsonObject?.optionalInt(
     }
     return primitive.intOrNull
         ?: throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected integer")
+}
+
+private fun JsonObject?.optionalBoolean(
+    toolName: String,
+    argumentName: String,
+): Boolean? {
+    val value = this?.get(argumentName) ?: return null
+    val primitive =
+        value as? JsonPrimitive
+            ?: throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected boolean")
+    if (primitive.isString) {
+        throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected boolean")
+    }
+    return primitive.booleanOrNull
+        ?: throw ToolArgumentException("Invalid $toolName argument '$argumentName': expected boolean")
 }
 
 private class ToolArgumentException(
