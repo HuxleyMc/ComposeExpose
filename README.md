@@ -118,9 +118,11 @@ Tools:
 
 `search_composables` ranks exact name matches first, then prefix, substring, package, KDoc, parameter, annotation, and preview metadata matches. Results can be filtered by module, source set, Kotlin visibility, and preview presence. Results default to 20 items and are capped at 100 to keep agent context bounded.
 
+`get_composable` returns a structured lookup result with the requested id, a `found` flag, the matched composable when present, and recovery guidance when an id is stale or unknown.
+
 `list_previews` can be filtered by preview group, Gradle module, source set, or preview annotation, which lets clients inspect reusable preview coverage without reading the full index. Preview results default to 20 items and are capped at 100.
 
-Tool responses keep JSON text content for compatibility and also include MCP `structuredContent` wrappers for clients that can consume typed results directly: `results`, `composable`, `previews`, `result`, and `status`.
+Tool responses keep JSON text content for compatibility and also include MCP `structuredContent` wrappers for clients that can consume typed results directly: `results`, `previews`, `result`, and `status`.
 
 `tools/list` includes input property metadata and field-level output schemas for those structured wrappers, including composable records, preview rows, freshness status, and refresh results, so clients can plan calls without sampling each tool first.
 

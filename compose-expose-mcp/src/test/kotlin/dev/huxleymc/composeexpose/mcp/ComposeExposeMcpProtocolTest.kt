@@ -136,6 +136,34 @@ class ComposeExposeMcpProtocolTest {
                         ?.content,
                 )
 
+                val missingComposable =
+                    client.callTool(
+                        "get_composable",
+                        mapOf("id" to ":app:main:dev.example.MissingCard#"),
+                    )
+                val lookupResult =
+                    assertNotNull(missingComposable.structuredContent)
+                        .getValue("result")
+                        .jsonObject
+                assertEquals(
+                    ":app:main:dev.example.MissingCard#",
+                    lookupResult["id"]
+                        ?.jsonPrimitive
+                        ?.content,
+                )
+                assertEquals(
+                    "false",
+                    lookupResult["found"]
+                        ?.jsonPrimitive
+                        ?.content,
+                )
+                assertTrue(
+                    lookupResult["message"]
+                        ?.jsonPrimitive
+                        ?.content
+                        ?.contains("Call search_composables") == true,
+                )
+
                 val modules =
                     client.readResource(
                         ReadResourceRequest(ReadResourceRequestParams(uri = "compose-expose://modules")),

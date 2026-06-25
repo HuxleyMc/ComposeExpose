@@ -23,6 +23,14 @@ data class PreviewSearchResult(
 )
 
 @Serializable
+data class ComposableLookupResult(
+    val id: String,
+    val found: Boolean,
+    val composable: ComposableDeclaration?,
+    val message: String?,
+)
+
+@Serializable
 data class ModuleSummaryResource(
     val generatedAtEpochMillis: Long,
     val projectRoot: String,
@@ -103,6 +111,21 @@ class ComposeExposeService(
     }
 
     fun getComposable(id: String): ComposableDeclaration? = loadIndex().composables.firstOrNull { it.id == id }
+
+    fun lookupComposable(id: String): ComposableLookupResult {
+        val composable = getComposable(id)
+        return ComposableLookupResult(
+            id = id,
+            found = composable != null,
+            composable = composable,
+            message =
+                if (composable == null) {
+                    "No composable found for id '$id'. Call search_composables to discover current ids, then retry get_composable."
+                } else {
+                    null
+                },
+        )
+    }
 
     fun listPreviews(
         group: String? = null,

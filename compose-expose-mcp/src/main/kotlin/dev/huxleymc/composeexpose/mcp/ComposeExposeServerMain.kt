@@ -185,7 +185,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
 
     server.addTool(
         name = "get_composable",
-        description = "Return one indexed composable by stable id.",
+        description = "Return one indexed composable lookup result by stable id.",
         inputSchema =
             ToolSchema(
                 required = listOf("id"),
@@ -196,16 +196,13 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
             ),
         outputSchema =
             toolOutputSchema(
-                "composable",
-                nullableSchema(
-                    "Matched composable declaration, or null when the id is unknown.",
-                    composableSchema(),
-                ),
+                "result",
+                composableLookupResultSchema(),
             ),
     ) { request ->
-        toolResult(json, "composable") {
+        toolResult(json, "result") {
             val id = request.arguments.requiredString("get_composable", "id")
-            service.getComposable(id)
+            service.lookupComposable(id)
         }
     }
 
@@ -473,6 +470,22 @@ private fun previewSearchResultSchema(): JsonObject =
                 put("composableId", stringSchema("Stable composable id that owns the preview."))
                 put("composableName", stringSchema("Composable function name that owns the preview."))
                 put("preview", previewSchema())
+            },
+    )
+
+private fun composableLookupResultSchema(): JsonObject =
+    objectSchema(
+        description = "Composable lookup result for a stable id.",
+        required = listOf("id", "found", "composable", "message"),
+        properties =
+            buildJsonObject {
+                put("id", stringSchema("Requested stable composable id."))
+                put("found", booleanSchema("Whether the id resolved to an indexed composable."))
+                put(
+                    "composable",
+                    nullableSchema("Matched composable declaration, or null when the id is unknown.", composableSchema()),
+                )
+                put("message", nullableStringSchema("Recovery guidance when the id is unknown."))
             },
     )
 
