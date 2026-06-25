@@ -91,6 +91,7 @@ fun buildComposeExposeMcpServer(service: ComposeExposeService): Server {
                             resources = ServerCapabilities.Resources(subscribe = false, listChanged = false),
                         ),
                 ),
+            instructions = COMPOSE_EXPOSE_MCP_INSTRUCTIONS,
         )
 
     server.addResource(
@@ -497,6 +498,15 @@ private fun refreshResultSchema(): JsonObject =
                 put("status", indexStatusSchema())
             },
     )
+
+private const val COMPOSE_EXPOSE_MCP_INSTRUCTIONS =
+    """
+Use ComposeExpose to discover reusable Jetpack Compose declarations from the generated index before grepping source.
+Call index_status first when freshness matters; if exists is false, isStale is true, or error is set, call refresh_index and retry discovery after it returns.
+Prefer search_composables with a focused query and small limit, then get_composable for full metadata by stable id.
+Use structuredContent from tool results when your client supports it; text content is JSON kept for compatibility.
+Use compose-expose://modules or compose-expose://module/{module} for compact module context, and compose-expose://index only when the full index is needed.
+"""
 
 private inline fun <reified T> toolResult(
     json: Json,

@@ -120,6 +120,8 @@ Tool responses keep JSON text content for compatibility and also include MCP `st
 
 `tools/list` includes input property metadata and field-level output schemas for those structured wrappers, including composable records, preview rows, freshness status, and refresh results, so clients can plan calls without sampling each tool first.
 
+The server also publishes MCP instructions that tell clients to check `index_status`, call `refresh_index` only when needed, prefer bounded searches, and consume `structuredContent` when supported.
+
 Malformed tool arguments are returned as MCP tool errors with stable validation messages, so clients can fix the request and continue using the same session.
 
 `refresh_index` returns a structured success flag, Gradle output, and a fresh `index_status` snapshot. Without a module argument it runs `composeExposeAggregateIndex`. With a module argument it runs `<module>:composeExposeIndex` and then `composeExposeAggregateIndex`, so the aggregate index served by MCP is refreshed before clients query again. Invalid module paths, concurrent refresh requests, and Gradle launch failures are returned as `success: false` results so MCP clients can recover without treating the server session as failed.

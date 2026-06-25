@@ -53,6 +53,11 @@ class ComposeExposeMcpProtocolTest {
                 clientJob.join()
                 serverJob.join()
 
+                val serverInstructions = assertNotNull(client.serverInstructions)
+                assertTrue(serverInstructions.contains("index_status"))
+                assertTrue(serverInstructions.contains("refresh_index"))
+                assertTrue(serverInstructions.contains("structuredContent"))
+
                 val tools = client.listTools()
                 val searchTool = assertNotNull(tools.tools.firstOrNull { it.name == "search_composables" })
                 val searchOutputSchema = searchTool.outputSchema ?: error("search_composables outputSchema was missing")
